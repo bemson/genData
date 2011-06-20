@@ -37,59 +37,59 @@ Below is the dataset generated from the object: `{foo: 'bar'}`.
 
 Include `gendata-min.js` in your application.
 
-Convert stuff into a generic dataset.
+Convert stuff to a dataset.
 ```js
-var dataStuff = genData(stuff);
+    var dataStuff = genData(stuff);
 ```
 
-Spawn custom generators to modify and filter your stuff.
+Spawn generators to modify and filter stuff.
 ```js
-var genFilteredData = new genData(
-  function (name, value, parent, index) {
-    if (name.charAt(0) === '_') return 0; // exclude from dataset but continue parsing
-  },
-  function (name, value, parent, index) {
-    if (name.indexOf('$') > -1) return false; // exclude from dataset and skip further parsing
-  }
-);
+    var genFilteredData = new genData(
+      function (name, value, parent, index) {
+        if (name.charAt(0) === '_') return 0; // exclude from dataset but continue parsing
+      },
+      function (name, value, parent, index) {
+        if (name.indexOf('$') > -1) return false; // exclude from dataset and skip further parsing
+      }
+    );
 ```
 
 
-Extend generators to define increasingly complex data models and prototype chains.
+Extend generators to define increasingly complex data models (i.e., the data structure and prototype-chain).
 ```js
-// cache the type of each data's value
-var genTypes = new genFilteredData(
-  function (name, value, parent, index) {
-    this.cachedType = typeof value;
-  }
-);
+    // cache the type of each data's value
+    var genTypes = new genFilteredData(
+      function (name, value, parent, index) {
+        this.cachedType = typeof value;
+      }
+    );
 
-// init attributes property, and add name/value pair for children prefixed with an underscore
-var genAttrData = new genFilteredData(
-  function (name, value, parent, index) {
-    this.attributes = {};
-    if (parent && name.charAt(0) === '_') {
-      parent.attributes[name.substr(1)] = value;
-    }
-  }
-);
+    // init attributes property, and add name/value pair for children prefixed with an underscore
+    var genAttrData = new genFilteredData(
+      function (name, value, parent, index) {
+        this.attributes = {};
+        if (parent && name.charAt(0) === '_') {
+          parent.attributes[name.substr(1)] = value;
+        }
+      }
+    );
 ```
 
 
 Prototype members to generators, to make them available in spawned generators and their datasets.
 ```js
-// add property to all datasets
-genData.prototype.someMember = 'now present in all dataset';
-// add method to datasets from this and current/future spawned generators
-genAttrData.prototype.hasAttribute = function (key) {
-  return this.attributes.hasOwnProperty(key);
-};
+    // add property to all datasets
+    genData.prototype.someMember = 'now present in all dataset';
+    // add method to datasets from this and current/future spawned generators
+    genAttrData.prototype.hasAttribute = function (key) {
+      return this.attributes.hasOwnProperty(key);
+    };
 ```
 
 
 Change the model (i.e., structure and prototype) of existing datasets, by passing them to a different generator.
 ```js
-var strippedAttributes = genData(genAttrData(stuff));
+    var strippedAttributes = genData(genAttrData(stuff));
 ```
 
 ---
