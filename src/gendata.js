@@ -1,13 +1,13 @@
 /**
-genData is an object constructor, iterator, parser, and dataset generator.
+genData is an object iterator and parser, with prototype-able curry functions
 
 Generator returns a dataset (an array of sequenced data points)
-1 - genData([stuff [, parsers [, protoObj]]])
+1 - genData([stuff [, parsers [, model]]])
   stuff - Mixed, any object to convert into a dataset
   parsers - Array|Function, one or more parser functions (to modify data structure and/or exclude data)
   model - Object, prototype for generated data
 
-Constructor returns a new generator with a prototype and parsers that build off the last one.
+Constructor returns a new generator that is part of the prototype chain and a preset parsers
 1 - new genData([parser1, [parserN, ...]])
   parserN - Function, data constructor and dataset filters
 2 - new genData(model, parsers)
@@ -26,16 +26,16 @@ function genData(stuff) {
   var args = arguments, // alias arguments
     origFnc = args.callee, // this genData function
     i = 0, j, // loop vars
-    parsers, // array of data parser functions
-    dataset, // dataset to return
+    parsers = [], // array of parser functions
+    dataset = [], // dataset to return
     queue, // queue for creating data
     qItem, // item from queue array
-    dataModel, // constructor to prototype generated data
+    dataModel = origFnc, // constructor to prototype generated data - set to self by default
     data; // data to assess with parsers (during loop)
   // if not called with `new`...
   if (!(this.hasOwnProperty && this instanceof origFnc)) {
-    // use second argument as parsers array or use empty array
-    parsers = (typeof args[1] === 'function' ? [args[1]] : args[1]) || [];
+    // if given a second argument, set as parser value - wrap in array when a lone function
+    if (args[1]) parsers = typeof args[1] === 'function' ? [args[1]] : args[1];
     // tests whether data should be included
     function includeData (data) {
       // init vars
@@ -59,15 +59,12 @@ function genData(stuff) {
       this.value = value;
       this.parent = parent;
     }
-    // use the given or default object model, based on whether the third argument is a function
-    dataModel = typeof args[2] === 'function' ? args[2] : origFnc;
+    // if second argument is given, assume its an object model (instance or constructor function)
+    if (args[2]) dataModel = args[2];
     // set prototype to dataModel
     genData.prototype = dataModel.prototype;
     // set constructor to dataModel
     genData.prototype.constructor = dataModel;
-
-    // init array of data to return
-    dataset = [];
 
     // queue stuff
     queue = [['', stuff]]; // initial data point has no name or parent
@@ -95,48 +92,35 @@ function genData(stuff) {
     return dataset;
   } else if (stuff !== origFnc) { // or, when called with `new` and the first argument is not the origFnc...
 
-    // init parsers collection
-    parsers = [];
-    // set dataModel to self by default
-    dataModel = origFnc;
     // if second argument is an array...
-    if (typeof args[1] === 'object' && args[1].forEach) {
+    if (args[1] instanceof Array) {
       // use first argument as prototype (assume a constructor function)
       dataModel = stuff;
       // re-assign args to second argument (assumes an array of parser-functions)
       args = args[1];
-    } else { // otherwise, when second arg is not an array...
-      // convert args to an array (assumes all arguments are functions)
-      args = [].slice.call(args);
     }
-    // with each argument...
-    args.forEach(function (fnc) {
-      // if a non-genData function, add to parsers
-      if (typeof fnc === 'function' && !origFnc.prototype.isPrototypeOf(fnc)) parsers.push(fnc);
-    });
-    // return generator for this data model/parser combination
-    return (function () {
-      // define generator
-      function genData(stuff, oParsers, model) {
-        // if called without `new` operator...
-        if (!(this.hasOwnProperty && this instanceof genData)) {
-          // return filtered/generated dataset - allow parser additions and overriding the datamodel
-          return origFnc(stuff, parsers.concat(oParsers || []), model && model.protoype ? model : genData);
-        } else if (stuff !== origFnc) { // or, when called with new operator and stuff is not the original function...
-          // return new genData generator with any added parsers
-          return new origFnc(genData, parsers.concat([].slice.call(arguments)));
-        }
-        // (otherwise) return self for prototyping
-        return this;
+    // add additional functions to existing parsers - skip check to ensure only functions are passed
+    parsers = parsers.concat([].slice.call(args));
+    // return generator for this data model/parser combination ((a curried call to the original genData function)
+    function genData(stuff, oParsers, model) {
+      // if called without `new` operator...
+      if (!(this.hasOwnProperty && this instanceof genData)) {
+        // return filtered/generated dataset - allow parser additions and overriding the datamodel
+        return origFnc(stuff, parsers.concat(oParsers || []), model && model.protoype ? model : genData);
+      } else if (stuff !== origFnc) { // or, when called with new operator and stuff is not the original function...
+        // return new genData generator with any added parsers
+        return new origFnc(genData, parsers.concat([].slice.call(arguments)));
       }
-      // add prototype chain of dataModel constructor
-      genData.prototype = new dataModel(origFnc); //origFnc.prototype.isPrototypeOf(dataModel) ? new dataModel(origFnc) : new dataModel(); // pass origFnc when dataModel is a genData function (prevents returning anything)
-      // reset constructor
-      genData.prototype.constructor = genData;
-      // return new generator
-      return genData;
-    })();
+      // (otherwise) return self for prototyping
+      return this;
+    }
+    // add prototype chain of dataModel constructor
+    genData.prototype = new dataModel(origFnc);
+    // reset constructor
+    genData.prototype.constructor = genData;
+    // return new generator
+    return genData;
   }
-  // return self for prototyping
+  // return self for prototype-chaining
   return this;
 }
