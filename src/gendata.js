@@ -69,35 +69,24 @@ function genData(stuff) {
     // init array of data to return
     dataset = [];
 
-    // if stuff is an array of genData objects...
-    if (stuff && typeof stuff.every === 'function' && stuff.every(function (data) {return data instanceof origFnc;})) {
-      // query existing dataset...
-      stuff.forEach(function (data) {
-        // create a new instance from the existing one
-        var d = new genData(data.name, data.value, data.parent);
-        // if data is successfully modified and included...
-        if (includeData(d)) dataset.push(d);
-      });
-    } else { // otherwise, when defining a new dataset...
-      // queue stuff
-      queue = [['', stuff]]; // initial data point has no name or parent
-      // while there is a queue...
-      while (queue.length) {
-        // remove item from queue
-        qItem = queue.pop();
-        // initialize data for this queued item - name, value, parent (object reference)
-        data = new genData(qItem[0], qItem[1], qItem[2]);
-        // if data is successfully modified and included...
-        if (includeData(data)) {
-          // add to dataset
-          dataset.push(data);
-          // if this data's value is an object...
-          if (typeof data.value === 'object') {
-            // with each property...
-            for (j in data.value) {
-              // if not inherited, add to processing queue
-              if (data.value.hasOwnProperty(j)) queue.unshift([j, data.value[j], data]);
-            }
+    // queue stuff
+    queue = [['', stuff]]; // initial data point has no name or parent
+    // while there is a queue...
+    while (queue.length) {
+      // remove item from queue
+      qItem = queue.pop();
+      // initialize data for this queued item - name, value, parent (object reference)
+      data = new genData(qItem[0], qItem[1], qItem[2]);
+      // if data is successfully modified and included...
+      if (includeData(data)) {
+        // add to dataset
+        dataset.push(data);
+        // if this data's value is an object...
+        if (typeof data.value === 'object') {
+          // with each property...
+          for (j in data.value) {
+            // if not inherited, add to processing queue
+            if (data.value.hasOwnProperty(j)) queue.unshift([j, data.value[j], data]);
           }
         }
       }
