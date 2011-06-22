@@ -4,7 +4,7 @@ genData is an object constructor, iterator, parser, and dataset generator.
 Generator returns a dataset (an array of sequenced data points)
 1 - genData([stuff [, parsers [, protoObj]]])
   stuff - Mixed, any object to convert into a dataset
-  parsers - Array, collection of parser functions (data constructors and dataset filters)
+  parsers - Array|Function, one or more parser functions (to modify data structure and/or exclude data)
   model - Object, prototype for generated data
 
 Constructor returns a new generator with a prototype and parsers that build off the last one.
@@ -35,7 +35,7 @@ function genData(stuff) {
   // if not called with `new`...
   if (!(this.hasOwnProperty && this instanceof origFnc)) {
     // use second argument as parsers array or use empty array
-    parsers = args[1] || [];
+    parsers = (typeof args[1] === 'function' ? [args[1]] : args[1]) || [];
     // tests whether data should be included
     function includeData (data) {
       // init vars
