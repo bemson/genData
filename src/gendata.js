@@ -54,7 +54,7 @@ function genData(stuff) {
     }
 
     // define base data constructor
-    function genData (name, value, parent) {
+    function Data (name, value, parent) {
       this.name = name;
       this.value = value;
       this.parent = parent;
@@ -62,9 +62,9 @@ function genData(stuff) {
     // if second argument is given, assume its an object model (instance or constructor function)
     if (args[2]) dataModel = args[2];
     // set prototype to dataModel
-    genData.prototype = dataModel.prototype;
+    Data.prototype = dataModel.prototype;
     // set constructor to dataModel
-    genData.prototype.constructor = dataModel;
+    Data.prototype.constructor = dataModel;
 
     // queue stuff
     queue = [['', stuff]]; // initial data point has no name or parent
@@ -73,7 +73,7 @@ function genData(stuff) {
       // remove item from queue
       qItem = queue.pop();
       // initialize data for this queued item - name, value, parent (object reference)
-      data = new genData(qItem[0], qItem[1], qItem[2]);
+      data = new Data(qItem[0], qItem[1], qItem[2]);
       // if data is successfully modified and included...
       if (includeData(data)) {
         // add to dataset
@@ -101,25 +101,25 @@ function genData(stuff) {
     }
     // add additional functions to existing parsers - skip check to ensure only functions are passed
     parsers = parsers.concat([].slice.call(args));
-    // return generator for this data model/parser combination ((a curried call to the original genData function)
-    function genData(stuff, oParsers, model) {
+    // return generator for this data model/parser combination (a curried call to the original genData function)
+    function Model(stuff, oParsers, model) {
       // if called without `new` operator...
-      if (!(this.hasOwnProperty && this instanceof genData)) {
+      if (!(this.hasOwnProperty && this instanceof Model)) {
         // return filtered/generated dataset - allow parser additions and overriding the datamodel
-        return origFnc(stuff, parsers.concat(oParsers || []), model && model.protoype ? model : genData);
+        return origFnc(stuff, parsers.concat(oParsers || []), model && model.protoype ? model : Model);
       } else if (stuff !== origFnc) { // or, when called with new operator and stuff is not the original function...
-        // return new genData generator with any added parsers
-        return new origFnc(genData, parsers.concat([].slice.call(arguments)));
+        // return new Model generator with any added parsers
+        return new origFnc(Model, parsers.concat([].slice.call(arguments)));
       }
       // (otherwise) return self for prototyping
       return this;
     }
     // add prototype chain of dataModel constructor
-    genData.prototype = new dataModel(origFnc);
+    Model.prototype = new dataModel(origFnc);
     // reset constructor
-    genData.prototype.constructor = genData;
+    Model.prototype.constructor = Model;
     // return new generator
-    return genData;
+    return Model;
   }
   // return self for prototype-chaining
   return this;
