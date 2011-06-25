@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(6/21/11)
-version 0.2
+(6/25/11)
+version 0.3
 by Bemi Faison
 
 
@@ -42,8 +42,29 @@ Include `gendata-min.js` in your application.
 
 ```
 
+2) genData represents a given value as a sequence of normalized (i.e., identical) data objects, called a _dataset_.
 
-2) Use standard array functions like `.filter()` and `.map()`, to query and manipulate the returned array.
+
+```js
+
+// `{foo: 'bar'}` becomes
+[
+  { // data object #1
+   name: '',
+   value: {foo: 'bar'},
+   parent: undefined
+  },
+  { // data object #2
+    name: 'foo',
+    value: 'bar',
+    parent: << data object 1 >>
+  }
+]
+
+```
+
+
+3) Use standard array functions like `.filter()` and `.map()`, to query and manipulate the returned dataset.
 
 ```js
 
