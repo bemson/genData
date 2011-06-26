@@ -18,7 +18,8 @@ Parser function signature:
   name - String, the data name
   value - Mixed, the data value
   parent - Object, reference to the parent data
-  index - Number, the potential position of the data within the returned array
+  index - Number, the potential position of the data within the dataset
+  datset - Array, the dataset being generated
 
 **/
 function genData(stuff) {
@@ -40,7 +41,7 @@ function genData(stuff) {
     function includeData (data) {
       // init vars
       var i = 0, // loop vars
-        args = [data.name, data.value, data.parent, dataset.length], // cache arguments for data parsers
+        args = [data.name, data.value, data.parent, dataset.length, dataset], // cache arguments for data parsers
         tmp, rslt; // test result swaps
       // process all parsers until one returns false...
       while (i < parsers.length && rslt !== !1) {
