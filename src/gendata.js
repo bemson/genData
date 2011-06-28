@@ -1,10 +1,10 @@
-/**
+/*
 genData is an object iterator and parser, with prototype-able curry functions
 
 Generator returns a dataset (an array of sequenced data points)
 1 - genData([stuff [, parsers [, model]]])
   stuff - Mixed, any object to convert into a dataset
-  parsers - Array|Function, one or more parser functions (to modify data structure and/or exclude data)
+  parsers - Array|Function, one or more parser functions (to modify data structure and control the parse loop)
   model - Object, prototype for generated data
 
 Constructor returns a new generator that is part of the prototype chain and a preset parsers
@@ -17,16 +17,20 @@ Constructor returns a new generator that is part of the prototype chain and a pr
 Parser function signature:
   name - String, the data name
   value - Mixed, the data value
-  parent - Object, reference to the parent data
-  index - Number, the potential position of the data within the dataset
+  parent - Object, reference to the parent data (the "_EXCLUDED" property indicates when the parent is not in the dataset)
   datset - Array, the dataset being generated
-
-**/
+  flags - Object, collection of loop control flags
+    flags.exclude - Bol, (default false), Indicates when this data object should be excluded from the dataset (after parsing completes)
+    flags.scanChildren - Bol, (default true) Indicates when the children of this data object should be processed
+    flags.parse - Bol, (default true) Indicates when genData should stop parsing this data object
+*/
 function genData(stuff) {
   // init vars
   var args = arguments, // alias arguments
+    flags, // indicators for whether a data object is included in the dataset and parsed
+    args, // parser arguments
     origFnc = args.callee, // this genData function
-    i = 0, j, // loop vars
+    i, j, d, // loop vars
     parsers = [], // array of parser functions
     dataset = [], // dataset to return
     queue, // queue for creating data
@@ -37,30 +41,14 @@ function genData(stuff) {
   if (!(this.hasOwnProperty && this instanceof origFnc)) {
     // if given a second argument, set as parser value - wrap in array when a lone function
     if (args[1]) parsers = typeof args[1] === 'function' ? [args[1]] : args[1];
-    // tests whether data should be included
-    function includeData (data) {
-      // init vars
-      var i = 0, // loop vars
-        args = [data.name, data.value, data.parent, dataset.length, dataset], // cache arguments for data parsers
-        tmp, rslt; // test result swaps
-      // process all parsers until one returns false...
-      while (i < parsers.length && rslt !== !1) {
-        // store parser result temporarily
-        tmp = parsers[i++].apply(data, args);
-        // if rolling result is truthy or undefined, or temporary result is false,  capture in rolling result
-        if (rslt || rslt === undefined || tmp === !1) rslt = tmp;
-      }
-      // return truthy if the result is truthy or undefined
-      return rslt || rslt === undefined;
-    }
-
+    // capture parsers length
+    j = parsers.length;
     // define base data constructor
-    function Data (name, value, parent) {
+    function Data(name, value) {
       this.name = name;
       this.value = value;
-      this.parent = parent;
     }
-    // if second argument is given, assume its an object model (instance or constructor function)
+    // if second argument is given, assume it's an object model (instance or constructor function)
     if (args[2]) dataModel = args[2];
     // set prototype to dataModel
     Data.prototype = dataModel.prototype;
@@ -73,23 +61,40 @@ function genData(stuff) {
     while (queue.length) {
       // remove item from queue
       qItem = queue.pop();
-      // initialize data for this queued item - name, value, parent (object reference)
-      data = new Data(qItem[0], qItem[1], qItem[2]);
-      // if data is successfully modified and included...
-      if (includeData(data)) {
+      // reset loop var
+      i = 0;
+      // initialize data for this queued item - name and value
+      data = new Data(qItem[0], qItem[1]);
+      // reset flags
+      flags = {
+        exclude: 0, // include data in dataset, by default
+        scanChildren: 1, // scan children, by default
+        parse: 1 // allow parsing, by default
+      };
+      // cache arguments to parse data
+      args = [data.name, data.value, qItem[2], dataset, flags];
+      // process all parsers until parsing completes or is stopped...
+      while (i < j && flags.parse) {
+        parsers[i++].apply(data, args);
+      }
+      // if exluding data...
+      if (flags.exclude) {
+        // set exclude flag to true (in case included child data references this data object)
+        data._EXCLUDED = !0;
+      } else { // otherwise, when not exluding this data object...
         // add to dataset
         dataset.push(data);
-        // if this data's value is an object...
-        if (typeof data.value === 'object') {
-          // with each property...
-          for (j in data.value) {
-            // if not inherited, add to processing queue
-            if (data.value.hasOwnProperty(j)) queue.unshift([j, data.value[j], data]);
-          }
+      }
+      // if children may be scanned and this data's (final) value is an object...
+      if (flags.scanChildren && typeof data.value === 'object') {
+        // with each property...
+        for (d in data.value) {
+          // if not inherited, add to processing queue
+          if (data.value.hasOwnProperty(d)) queue.unshift([d, data.value[d], data]);
         }
       }
     }
-    // return generated/filtered dataset
+    // return final dataset
     return dataset;
   } else if (stuff !== origFnc) { // or, when called with `new` and the first argument is not the origFnc...
 
