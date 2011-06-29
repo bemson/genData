@@ -21,7 +21,7 @@ Parser function signature:
   datset - Array, the dataset being generated
   flags - Object, collection of loop control flags
     flags.exclude - Bol, (default false), Indicates when this data object should be excluded from the dataset (after parsing completes)
-    flags.scanChildren - Bol, (default true) Indicates when the children of this data object should be processed
+    flags.scanValue - Bol, (default true) Indicates when the value of this data object should be processed
     flags.parse - Bol, (default true) Indicates when genData should stop parsing this data object
 */
 function genData(stuff) {
@@ -68,7 +68,7 @@ function genData(stuff) {
       // reset flags
       flags = {
         exclude: 0, // include data in dataset, by default
-        scanChildren: 1, // scan children, by default
+        scanValue: 1, // scan value, by default
         parse: 1 // allow parsing, by default
       };
       // cache arguments to parse data
@@ -85,8 +85,8 @@ function genData(stuff) {
         // add to dataset
         dataset.push(data);
       }
-      // if children may be scanned and this data's (final) value is an object...
-      if (flags.scanChildren && typeof data.value === 'object') {
+      // if value may be scanned and this data's (final) value is an object...
+      if (flags.scanValue && typeof data.value === 'object') {
         // with each property...
         for (d in data.value) {
           // if not inherited, add to processing queue
