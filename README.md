@@ -178,7 +178,7 @@ var genFiltered = new genData(
       // exclude from the dataset
       flags.exclude = true;
       // skip scanng object-properties in this data's value
-      flags.scanChildren = 0;
+      flags.scanValue = 0;
     }
   },
   function (name, value, parent, dataset, flags) {
@@ -187,7 +187,7 @@ var genFiltered = new genData(
       // exclude from the dataset
       flags.exclude = true;
       // skip scanng object-properties in this data's value
-      flags.scanChildren = 0;
+      flags.scanValue = 0;
       // stop parsing this data object altogether (skips waiting parser functions - if any)
       flags.parse = 0;
     }
