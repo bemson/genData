@@ -17,7 +17,7 @@ Constructor returns a new generator that is part of the prototype chain and a pr
 Parser function signature:
   name - String, the data name
   value - Mixed, the data value
-  parent - Object, reference to the parent data (the "_EXCLUDED" property indicates when the parent is not in the dataset)
+  parent - Object, reference to the parent data (the "_OMIT" property indicates when the parent is not in the dataset)
   datset - Array, the dataset being generated
   flags - Object, collection of loop control flags
     flags.exclude - Bol, (default false), Indicates when this data object should be excluded from the dataset (after parsing completes)
@@ -33,6 +33,7 @@ function genData(stuff) {
     i, j, d, // loop vars
     parsers = [], // array of parser functions
     dataset = [], // dataset to return
+    tmpQ, // child queue for children
     queue, // queue for creating data
     qItem, // item from queue array
     dataModel = origFnc, // constructor to prototype generated data - set to self by default
@@ -59,8 +60,8 @@ function genData(stuff) {
     queue = [['', stuff]]; // initial data point has no name or parent
     // while there is a queue...
     while (queue.length) {
-      // remove item from queue
-      qItem = queue.pop();
+      // remove item first item from queue
+      qItem = queue.shift();
       // reset loop var
       i = 0;
       // initialize data for this queued item - name and value
@@ -77,27 +78,32 @@ function genData(stuff) {
       while (i < j && flags.parse) {
         parsers[i++].apply(data, args);
       }
-      // if exluding data...
+      // if excluding data...
       if (flags.exclude) {
-        // set exclude flag to true (in case included child data references this data object)
-        data._EXCLUDED = !0;
-      } else { // otherwise, when not exluding this data object...
+        // set omission flag to true (in case included child data references this data object)
+        data._OMIT = true;
+      } else { // otherwise, when not excluding this data object...
         // add to dataset
         dataset.push(data);
       }
+      // reset temporary queue
+      tmpQ = [];
       // if value may be scanned and this data's (final) value is an object...
       if (flags.scanValue && typeof data.value === 'object') {
         // with each property...
         for (d in data.value) {
-          // if not inherited, add to processing queue
-          if (data.value.hasOwnProperty(d)) queue.unshift([d, data.value[d], data]);
+          // if not inherited...
+          if (data.value.hasOwnProperty(d)) {
+            // add to temporary queue
+            tmpQ.push([d, data.value[d], data]);
+          }
         }
       }
+      queue = tmpQ.concat(queue);
     }
     // return final dataset
     return dataset;
   } else if (stuff !== origFnc) { // or, when called with `new` and the first argument is not the origFnc...
-
     // if second argument is an array...
     if (args[1] instanceof Array) {
       // use first argument as prototype (assume a constructor function)
