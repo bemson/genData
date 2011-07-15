@@ -86,20 +86,26 @@ function genData(stuff) {
         // add to dataset
         dataset.push(data);
       }
-      // reset temporary queue
-      tmpQ = [];
-      // if value may be scanned and this data's (final) value is an object...
-      if (flags.scan && typeof data.value === 'object') {
-        // with each property...
-        for (d in data.value) {
-          // if not inherited...
-          if (data.value.hasOwnProperty(d)) {
-            // add to temporary queue
-            tmpQ.push([d, data.value[d], data]);
+      // if exiting...
+      if (flags.exit) {
+        // clear the queue
+        queue = [];
+      } else { // otherwise, when not exiting the iterator...
+        // reset temporary queue
+        tmpQ = [];
+        // if value may be scanned and this data's (final) value is an object...
+        if (flags.scan && typeof data.value === 'object') {
+          // with each property...
+          for (d in data.value) {
+            // if not inherited...
+            if (data.value.hasOwnProperty(d)) {
+              // add to temporary queue
+              tmpQ.push([d, data.value[d], data]);
+            }
           }
         }
+        queue = tmpQ.concat(queue);
       }
-      queue = tmpQ.concat(queue);
     }
     // return final dataset
     return dataset;
