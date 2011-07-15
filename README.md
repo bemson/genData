@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(7/14/11)
-version 0.8
+(7/15/11)
+version 0.8.1
 by Bemi Faison
 
 
