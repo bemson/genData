@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(7/9/11)
-version 0.7
+(7/14/11)
+version 0.8
 by Bemi Faison
 
 
@@ -85,7 +85,7 @@ var functionsInDataset = dataStuff
 var functionsInStuff = genData(
   stuff,
   function (name, value, parent, dataset, flags) {
-    flags.exclude = true;
+    flags.omit = true;
     if (typeof value === 'function') dataset.push(value);
   }
 );
@@ -122,7 +122,7 @@ var stringlessStuff = genData(
   stuff,
   function (name, value, parent, dataset, flags) {
     // tell genData to exclude strings
-    flags.exclude = value === 'string';
+    flags.omit = value === 'string';
   }
 );
 
@@ -162,7 +162,6 @@ var ultraParsedStuff = genData(
 
 ```
 
-
 ### Extending genData
 
 
@@ -174,15 +173,15 @@ Spawn _generators_ that curry genData calls and extend it's prototype chain.
 var genFiltered = new genData(
   function (name, value, parent, dataset, flags) {
     if (name.charAt(0) === '_') {
-      flags.exclude = true;
-      flags.scanValue = 0;
+      flags.omit = true;
+      flags.scan = 0;
     }
   },
   function (name, value, parent, dataset, flags) {
     if (name.indexOf('$') > -1) {
-      flags.exclude = true;
-      flags.scanValue = 0;
-      flags.parse = 0;
+      flags.omit = true;
+      flags.scan = 0;
+      flags.exit = 1;
     }
   }
 );
@@ -209,7 +208,7 @@ var genAttrData = new genFiltered(
     // if this data object has a parent and it's name begins with an underscore...
     if (parent && name.charAt(0) === '_') {
       // tell genData to exclude this data object from the dataset
-      flags.exclude = 1;
+      flags.omit = 1;
       // add an attribute to the parent, using this data's name and value
       parent.attributes[name.substr(1)] = value;
     }
