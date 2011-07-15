@@ -20,9 +20,9 @@ Parser function signature:
   parent - Object, reference to the parent data (the "_OMIT" property indicates when the parent is not in the dataset)
   datset - Array, the dataset being generated
   flags - Object, collection of loop control flags
-    flags.exclude - Bol, (default false), Indicates when this data object should be excluded from the dataset (after parsing completes)
-    flags.scanValue - Bol, (default true) Indicates when the value of this data object should be processed
-    flags.parse - Bol, (default true) Indicates when genData should stop parsing this data object
+    flags.omit - Bol, (default false), Indicates when this data object should be excluded from the dataset (after parsing completes)
+    flags.scan - Bol, (default true) Indicates when the value of this data object should be processed
+    flags.exit - Bol, (default false) Indicates when genData should stop parsing
 */
 function genData(stuff) {
   // init vars
@@ -68,18 +68,18 @@ function genData(stuff) {
       data = new Data(qItem[0], qItem[1]);
       // reset flags
       flags = {
-        exclude: 0, // include data in dataset, by default
-        scanValue: 1, // scan value, by default
-        parse: 1 // allow parsing, by default
+        omit: 0, // include data in dataset, by default
+        scan: 1, // scan value, by default
+        exit: 0 // do not exit, by default
       };
       // cache arguments to parse data
       args = [data.name, data.value, qItem[2], dataset, flags];
       // process all parsers until parsing completes or is stopped...
-      while (i < j && flags.parse) {
+      while (i < j && !flags.exit) {
         parsers[i++].apply(data, args);
       }
       // if excluding data...
-      if (flags.exclude) {
+      if (flags.omit) {
         // set omission flag to true (in case included child data references this data object)
         data._OMIT = true;
       } else { // otherwise, when not excluding this data object...
@@ -89,7 +89,7 @@ function genData(stuff) {
       // reset temporary queue
       tmpQ = [];
       // if value may be scanned and this data's (final) value is an object...
-      if (flags.scanValue && typeof data.value === 'object') {
+      if (flags.scan && typeof data.value === 'object') {
         // with each property...
         for (d in data.value) {
           // if not inherited...
