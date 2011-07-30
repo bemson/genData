@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(7/15/11)
-version 0.8.1
+(7/30/11)
+version 0.9
 by Bemi Faison
 
 
@@ -27,211 +27,222 @@ genData is a recursive, depth-first iterator and generic parser, for querying ob
 Include `gendata-min.js` in your application.
 
 
-**Caution** genData _will_ scan objects recursively!! You must define a _parser_ to avoid infinite loops, as there is no built-in error handling.
+**Caution** genData _will_ scan objects recursively!!
 
 
-### Basics
+### Normalize
 
-
-1) Convert stuff to a dataset.
-
+genData translates anything into a normalized _dataset_ (i.e., an array of identical objects). Below demonstrates how to normalize an object and nothing.
 
 ```js
+    // normalize an object-literal
+    var dataset = genData({hello: 'world'});
 
-var dataStuff = genData(stuff);
-
+    // normalize nothing
+    var nada = genData();
 ```
 
-A _dataset_ is an array of normalized (i.e., identical) data objects. Below is the datset returned from parsing `{foo: 'bar'}`.
-
-
-```js
-
-var dataset = genData({foo: 'bar'});
-/*
-dataset =>
-    [
-      { // data object #1
-       name: '',
-       value: {foo: 'bar'}
-      },
-      { // data object #2 (child of data object #1)
-        name: 'foo',
-        value: 'bar'
-      }
-    ]
-*/
+Below illustrates the resulting datasets, returned by genData.
 
 ```
+    dataset =>
+      [
+        {
+         name: '',
+         value: {hello: 'world'}
+        },
+        {
+          name: 'hello',
+          value: 'world'
+        }
+      ]
 
-2) Use standard array functions like `.filter()` and `.map()`, to query and manipulate the returned dataset.
-
-```js
-
-var functionsInDataset = dataStuff
-  .filter(function (data) {
-    return data.value === 'function'
-  })
-  .map(function (data) {
-    return data.value;
-  });
-
+    nada =>
+      [
+        {
+         name: '',
+         value: undefined
+        }
+      ]
 ```
 
-3) Or, provide _parser_ functions to filter and map stuff for you.
+Each data object has the base members name and value, which reference those of it's corresponding (non-inherited) property.
+
+### Parsers
+
+The second argument may be a function or array of functions, called _parsers_. Parsers control how genData iterates over an object's properties, the members for each data object, and which data will be excluded from the final dataset.
+
+This call to genData, passes a parser function which appends the member "random" to each data object.
 
 ```js
-
-var functionsInStuff = genData(
-  stuff,
-  function (name, value, parent, dataset, flags) {
-    flags.omit = true;
-    if (typeof value === 'function') dataset.push(value);
-  }
-);
-
-
+    var dataIds = genData(
+        anyObject,
+        function () {
+          this.random = Math.random();
+        }
+      );
 ```
 
-### Customizing genData
-
-
-Modify the structure of each data object generated from stuff.
-
+This call does the same, but passes a collection of parses; the second one rounds the newly added member.
 
 ```js
-
-var metaStuff = genData(
-  stuff,
-  function (name, value, parent, dataset, flags) {
-    var data = this;
-    data.uniqueId = (Math.random() * 1000).toString(20);
-    data.shortName = name.substr(0,4);
-  }
-);
-
+    var dataIds = genData(
+        anyObject,
+        [
+          function () {
+            this.random = Math.random();
+          },
+          function () {
+            this.random = Math.round(this.random);
+          }
+        ]
+      );
 ```
 
+Parser functions have the following signature:
 
-Exclude parts of stuff from the dataset.
+ - name - _String_, The original name of this data object.
+ - value - _Mixed_, The original value for this data object.
+ - parent - _Data_, The data object, whose value contains this data object's corresponding property.
+ - dataset - _Array_, The array returned when genData has completed normalizing an object.
+ - flags - _Object_, Collection of keys for controlling genData.
+   - omit: When truthy, the current data object is excluded from the final dataset.
+   - scan: When falsy, properties of the current data object will not be processed.
+   - exit: When truthy, genData stops all parsing and iteration.
 
+This genData call uses a parser to ensure the dataset only contains data objects that reference functions.
 
 ```js
-
-var stringlessStuff = genData(
-  stuff,
-  function (name, value, parent, dataset, flags) {
-    // tell genData to exclude strings
-    flags.omit = value === 'string';
-  }
-);
-
+    var allFncData = genData(
+        anyObject,
+        function (name, value, parent, dataset, flags) {
+          flags.omit = typeof value !== 'function';
+        }
+      );
 ```
 
-
-Create stuff with a familiar prototype.
-
+Combined with access over the dataset array, parsers can be used to return an array containing items other than data objects. This example is similar to the one above, except the dataset is now a collection of actual functions.
 
 ```js
-
-var myObjs = genData(
-  stuff,
-  function (name, value, parent, dataset, flags) {
-    this.somePrototypedMethod();
-  },
-  myConstructorsPrototype
-);
-
+    var allFncs = genData(
+        anyObject,
+        function (name, value, parent, dataset, flags) {
+          flags.omit = 1; // don't let anything in the dataset
+          if (typeof value === 'function') {
+            dataset.push(value);
+          }
+        }
+      );
 ```
 
 
-Incrementally structure and filter stuff, using any combination of _parsers_.
+### Generators
 
+Custom calls to genData can be captured in a closured function, called a _generator_. Generators normalize objects like genData, but send pre-defined arguments, in order to reduce and reuse useful parser functions.
 
-```js
-
-var ultraParsedStuff = genData(
-  stuff,
-  [
-    filterKeysWithUnderscores,
-    denyKeysWithDollarSymbols,
-    addUniqueIdProperty,
-    addShortNameProperty
-  ]
-);
-
-```
-
-### Extending genData
-
-
-Spawn _generators_ that curry genData calls and extend it's prototype chain.
-
+Spawn a generator, by invoking genData with the `new` operator and passing one or more parsers (however, not an array of parsers). 
 
 ```js
-
-var genFiltered = new genData(
-  function (name, value, parent, dataset, flags) {
-    if (name.charAt(0) === '_') {
-      flags.omit = true;
-      flags.scan = 0;
-    }
-  },
-  function (name, value, parent, dataset, flags) {
-    if (name.indexOf('$') > -1) {
-      flags.omit = true;
-      flags.scan = 0;
-      flags.exit = 1;
-    }
-  }
-);
-
+    var genRandom = new genData(
+        function (name, value, parent, dataset, flags) {
+          this.random = Math.random();
+        }
+      );
 ```
 
-
-Spawn generators from generators, in order to compound parsers and further prototype-chains.
-
+Generators may then be passed an object to normalize, and genData will behave as if the parser were manually added. Below demonstrates two identical calls to genData, one via the previously defined generator function `genRandom()`.
 
 ```js
+    var predefinedCall = genRandom(anything);
 
-// cache the type of each data's value
-var genTypeCaches = new genFiltered(
-  function (name, value, parent, dataset, flags) {
-    this.cachedType = typeof value; 
-  }
-);
-
-// init attributes property, and add name/value pair for children prefixed with an underscore
-var genAttrData = new genFiltered(
-  function (name, value, parent, dataset, flags) {
-    this.attributes = {}; // add attributes property to data
-    // if this data object has a parent and it's name begins with an underscore...
-    if (parent && name.charAt(0) === '_') {
-      // tell genData to exclude this data object from the dataset
-      flags.omit = 1;
-      // add an attribute to the parent, using this data's name and value
-      parent.attributes[name.substr(1)] = value;
-    }
-  }
-);
-
+    var manualCall = genData(
+        anything,
+        function (name, value, parent, dataset, flags) {
+          this.random = Math.random();
+        }
+      );
 ```
 
-
-Prototype members to generators (including genData), for incremental functionality.
-
+Additionally, generators can spawn generators, in which each then builds upon the customizations of the former.
 
 ```js
-
-// data created from genData (and spawned generators) will have this property
-genData.prototype.someMember = 'now available to all data objects';
-// data created from this generator (and those spawned from it) will have this method
-genAttrData.prototype.hasAttribute = function (key) {
-  return this.attributes.hasOwnProperty(key);
-};
-
+    var genLuckyPicks = new genRandom(
+        function (name, value, parent, dataset, flags) {
+          var lucky = Math.round(this.random);
+          if (!lucky) {
+        
+          }
+        }
+      );
 ```
 
+### Prototyping
+
+The data objects created by genData, when normalizing an object, use `genData()` as their initial prototype. The following assigns an `.isArray()` method to all data objects created by genData, or via spawned generators.
+
+```js
+    genData.prototype.isArray = function () {
+      return !!~{}.toString.call(this.value).indexOf('y');
+    };
+```
+
+Prototyped members are immediately accessible in data objects created by that generator or those spawned from it. Below demonstrates using a prototyped method after normalizing an object, and then within a parser function - before the data is included in the dataset.
+
+```js
+    var isThisAnArray = genData(something)[0].isArray();
+
+    var isArraySet = genData(
+        something,
+        function () {
+          this.cachedArrayCheck = this.isArray();
+        }
+      );
+```
+
+When normalizing an object, genData also accepts a function as it's third parameter. This argument becomes the prototype for all data object(s) created during that call.
+
+```js
+    var familarData = genData(
+        anything,
+        [], // this may also be falsy
+        aFamiliarConstructor
+      );
+
+    familiarData[0].someFamiliarMethod();
+```
+
+Spawning generators is a means for extending the prototype chain. Unless a third parameter (the custom constructor) is passed, the data objects receive the generators prototype chain.
+
+Below demonstrates how spawned generators extend the prototype chain.
+
+```js
+    var genSpecies = new genData(
+        function () {
+          this.genus = '';
+        }
+      ),
+      genHuman = new genSpecies(
+        function () {
+          this.genus = 'homosapien';
+          this.mood = 'happy';
+        }
+      ),
+      genWorker = new genHuman(
+        function () {
+          this.mood = 'crabby';
+        }
+      );
+
+    // generators spawned from genSpecies receive this method
+    genSpecies.prototype.isEvolved = function () {
+      return this.genus !== '';
+    };
+
+    // data objects from both genHuman and genWorker receive this method
+    genHuman.prototype.greeting = function () {
+      return 'Hello, I am ' + this.mood;
+    };
+```
 
 ---
 
