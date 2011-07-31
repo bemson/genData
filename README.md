@@ -32,7 +32,7 @@ Include `gendata-min.js` in your application.
 
 ### Normalize
 
-genData translates anything into a normalized _dataset_ (i.e., an array of identical objects). Below demonstrates how to normalize an object and nothing.
+genData translates anything into a normalized _dataset_ (i.e., an array of identical objects). Below demonstrates how to normalize an object and nothing at all.
 
 ```js
     // normalize an object-literal
@@ -42,7 +42,7 @@ genData translates anything into a normalized _dataset_ (i.e., an array of ident
     var nada = genData();
 ```
 
-Below illustrates the resulting datasets, returned by genData.
+Below illustrates the resulting datasets, returned by genData. Each data object has two basic members: _name_ and _value_. (A data object is created for the initial value and every non-inherited property within.)
 
 ```
     dataset =>
@@ -66,8 +66,6 @@ Below illustrates the resulting datasets, returned by genData.
       ]
 ```
 
-Each data object has the base members name and value, which reference those of it's corresponding (non-inherited) property.
-
 ### Parsers
 
 The second argument may be a function or array of functions, called _parsers_. Parsers control how genData iterates over an object's properties, the members for each data object, and which data will be excluded from the final dataset.
@@ -83,7 +81,7 @@ This call to genData, passes a parser function which appends the member "random"
       );
 ```
 
-This call does the same, but passes a collection of parses; the second one rounds the newly added member.
+This call adds the same member, but passes a collection of parsers in an array. Here, the second parser works with the member added by the first.
 
 ```js
     var dataIds = genData(
@@ -110,7 +108,7 @@ Parser functions have the following signature:
    - scan: When falsy, properties of the current data object will not be processed.
    - exit: When truthy, genData stops all parsing and iteration.
 
-This genData call uses a parser to ensure the dataset only contains data objects that reference functions.
+Setting keys in the `flags` object, directly impacts how genData traverses and parses an object. Below the parser filters data objects via the "omit", after testing the type of the value.
 
 ```js
     var allFncData = genData(
@@ -121,7 +119,7 @@ This genData call uses a parser to ensure the dataset only contains data objects
       );
 ```
 
-Combined with access over the dataset array, parsers can be used to return an array containing items other than data objects. This example is similar to the one above, except the dataset is now a collection of actual functions.
+Access to the dataset array, allows parsers to control it's contents. This example is similar to the one above, except the dataset will now contain function references, instead of data objects pointing to the same functions.
 
 ```js
     var allFncs = genData(
@@ -138,19 +136,22 @@ Combined with access over the dataset array, parsers can be used to return an ar
 
 ### Generators
 
-Custom calls to genData can be captured in a closured function, called a _generator_. Generators normalize objects like genData, but send pre-defined arguments, in order to reduce and reuse useful parser functions.
+Custom configurations of genData may be captured as a closured function, called a _generator_.
 
-Spawn a generator, by invoking genData with the `new` operator and passing one or more parsers (however, not an array of parsers). 
+Spawn generators by calling genData with the `new` operator, along with one or more parsers; not as an array, however.
 
 ```js
     var genRandom = new genData(
         function (name, value, parent, dataset, flags) {
           this.random = Math.random();
-        }
+        },
+        // ... more parser functions
       );
 ```
 
-Generators may then be passed an object to normalize, and genData will behave as if the parser were manually added. Below demonstrates two identical calls to genData, one via the previously defined generator function `genRandom()`.
+Generators are curry-like functions, in that they prepend arguments (i.e., custom parsers) when instructing genData to normalize an object. This reduces the code needed to repeatedly use the same parser configuration in genData calls.
+
+Below demonstrates two identical genData calls. One made via the generator `genRandom()` (defined above). The other, sends a function literal.
 
 ```js
     var predefinedCall = genRandom(anything);
@@ -163,14 +164,14 @@ Generators may then be passed an object to normalize, and genData will behave as
       );
 ```
 
-Additionally, generators can spawn generators, in which each then builds upon the customizations of the former.
+Spawn generators from existing ones, in order to build comprehensive parser configurations from simpler ones. The syntax for spawning from an existing generator, is the same used with genData.
 
 ```js
     var genLuckyPicks = new genRandom(
         function (name, value, parent, dataset, flags) {
           var lucky = Math.round(this.random);
           if (!lucky) {
-        
+            this.omit = 1;
           }
         }
       );
