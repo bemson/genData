@@ -1,21 +1,4 @@
-module('Presence');
-
-test("window.genData does not exist", 1, function() {
-  ok(window.genData, "genData is not loaded");
-});
-
-!function () {
-  var script = document.createElement('script');
-  script.setAttribute('src', '../gendata-min.js');
-  document.getElementsByTagName('head')[0].appendChild(script);
-}();
-
-test("window.genData is valid", 2, function() {
-  ok(window.genData, "genData is loaded");
-  equal(typeof genData, 'function', 'genData is a function');
-});
-
-module('Normalizing');
+module('Normalize');
 
 test("nothing", 8, function () {
   var dataset = genData();
@@ -149,7 +132,7 @@ test('depth-first ordered tree', function () {
   }
 });
 
-module('Parsers');
+module('Parser');
 
 test('one function as second argument', function () {
   genData('anything', function () {
@@ -268,8 +251,15 @@ test('flags.exit', function () {
         tic = 1;
       }
     ]
-  );
+  ),
+  stuff = [1,2,3],
+  dataset = genData(stuff),
+  exitSet = genData(stuff, function (name, value, parent, dataset, flags) {
+    flags.exit = 1;
+  });
   ok(!tic, 'second parser was skipped');
+  equal(1, exitSet.length, 'only one data object was created');
+  notEqual(dataset.length, exitSet, 'exit flag reduced the number of data objects created');
 });
 
 test('alter the dataset', function () {
@@ -283,4 +273,121 @@ test('alter the dataset', function () {
     );
   notEqual(typeof stuff, 'object', 'the parsed value has no enumerable members');
   deepEqual(dataset, fauxValues, 'final dataset has been augmented');
+});
+
+
+module('Generator');
+
+test('spawning', 8, function () {
+  var tic = 0,
+    parser = function () {
+      ok(1, 'parser passed from generator to genData');
+    },
+    gen = new genData(parser),
+    tmp = genData,
+    dataset;
+  ok(typeof gen === 'function', 'returns a function');
+  genData = function () {
+    tic = 1;
+  };
+  dataset = gen(1); // should fire assertion in parser()
+  equal(tic, 0 , 'generator is a closured call');
+  genData = tmp;
+  gen(1, parser);
+  gen(1, [parser]);
+  ok(dataset[0].constructor === gen, 'data object constructor is generator');
+});
+
+test('signature', function () {
+  
+});
+
+test('compounding', function () {
+  var strStart = 'foo',
+    strEnd = strStart.toUpperCase(),
+    idF = function () {
+      this.id = strStart;
+    },
+    upperF = function () {
+      this.id = this.id.toUpperCase();
+    },
+    genId = new genData(idF),
+    genUpper = new genId(upperF),
+    dataCompound = genUpper(1)[0],
+    dataManual = genData(
+      1,
+      [
+        idF,
+        upperF
+      ]
+    )[0];
+  equal(strEnd, dataCompound.id, 'the second generator added to the the first');
+  equal(strEnd, dataManual.id, 'manual result matches compound generator');
+});
+
+module('Prototype');
+
+test('chaining', function () {
+  var emptyFnc = function () {},
+    genAnimal = new genData(emptyFnc),
+    genDog = new genAnimal(emptyFnc),
+    genFruit = new genData(emptyFnc),
+    dog = genDog(1)[0],
+    fruit = genFruit(1)[0];
+  ok(dog instanceof genAnimal, 'dog comes from animal generator');
+  ok(dog instanceof genDog, 'dog comes from dog generator');
+  ok(dog instanceof genData, 'dog comes from genData');
+  ok(dog.constructor === genDog, 'dog is a genDog instance');
+  ok(fruit instanceof genFruit, 'fruit comes from fruit generator');
+  ok(fruit instanceof genData, 'fruit comes from genData');
+  ok(fruit.constructor === genFruit, 'fruit is a genFruit instance');
+});
+
+test('methods', function () {
+  var stuff = {foo:'bar'},
+    gen = new genData(function () {}),
+    dataset = gen(stuff);
+  ok(typeof dataset[0].getValue === 'undefined', 'no getValue method present');
+  genData.prototype.getValue = function () {
+    ok(this instanceof genData, 'scope is a genData instance');
+    return this.value;
+  };
+  ok(typeof dataset[0].getValue === 'function', 'getValue method exists now');
+  ok(typeof dataset[0].toUpperCase === 'undefined', 'no spawned method present');
+  gen.prototype.toUpperCase = function () {
+    ok(this instanceof gen, 'scope is a gen instance');
+    return this.getValue().toUpperCase();
+  };
+  ok(typeof dataset[0].toUpperCase === 'function', 'spawned method exists now');
+  strictEqual(stuff, dataset[0].getValue(), 'genData prototyped method works');
+  strictEqual(stuff.foo.toUpperCase(), dataset[1].toUpperCase(), 'generator prototyped method sees chained methods');
+  // clean up!
+  delete genData.prototype.getValue;
+  ok(typeof dataset[0].getValue === 'undefined', 'removed prototyped method from genData');
+});
+
+test('substitute base models', function () {
+  var tic = 0,
+    emptyFnc = function () {},
+    parser = function () {
+      tic++;
+    },
+    myModel = function () {},
+    dataModel = genData(1, [parser], myModel),
+    gen = new genData(parser),
+    dataGen = gen(1,[parser], myModel),
+    finalTic = 3;
+  myModel.prototype.getValue = function () {
+    ok(this instanceof myModel, 'scope is an instance of the substitute constructor');
+    return this.value;
+  };
+  gen.prototype.hidden = emptyFnc;
+  ok(dataModel[0] instanceof myModel, 'can use prototype of a given constructor');
+  ok(!(dataModel[0] instanceof genData), 'substitution kills link to genData');
+  ok(dataGen[0] instanceof myModel, 'generators support prototype substitution');
+  ok(!(dataGen[0] instanceof genData), 'generator substitutions also kill link to genData');
+  ok(typeof dataModel[0].getValue === 'function', 'substitute prototype methods are accessible');
+  ok(typeof dataGen[0].hidden === 'undefined', 'generator and genData methods not available with custom prototypes');
+  equal(1, dataModel[0].getValue(), 'substitute prototype methods work');
+  equal(finalTic, tic, 'Parsers fire during prototype substitution');
 });
