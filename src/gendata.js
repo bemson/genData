@@ -21,6 +21,7 @@ function genData(stuff) {
     memberName,
     parsers = [],
     dataset = [],
+    sharedVars = {},
     queue,
     queueBuffer,
     queueItem,
@@ -104,7 +105,8 @@ function genData(stuff) {
         dataInstance.value, // mixed type
         queueItem[2], // a data object
         dataset, // an array
-        parserFlags // an object
+        parserFlags, // an object
+        sharedVars // shared variable container
       ];
       /**
        * Now pass arguments to each parser, unless one trips the "exit" flag.
