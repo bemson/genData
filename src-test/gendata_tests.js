@@ -159,7 +159,7 @@ test('scope and signature', function () {
   genData('anything', function (name, value, parent, dataset, flags) {
     var args = arguments;
     equal(this.constructor, genData, 'scope is a genData instance');
-    equal(args.length, 5, 'has expected number of arguments');
+    equal(args.length, 6, 'has expected number of arguments');
     equal(typeof name, 'string', 'name is a string');
     if (dataset.length) {
       equal(typeof parent, 'object', 'parent is an object');
@@ -201,7 +201,7 @@ test('remove properties', function () {
   }
 });
 
-test('original value preserved between parser calls', function () {
+test('presevering original value between parsers', function () {
   var originalValue = 'foo';
   genData(
     originalValue,
@@ -218,6 +218,30 @@ test('original value preserved between parser calls', function () {
       }
     ]
   );
+});
+
+test('preserving shared object between parsers and iterations', 5, function () {
+  var sharedSet = 0,
+    sharedRef,
+    parser = function (name, value, parent, dataset, flags, shared) {
+      if (!sharedSet) {
+        sharedSet = 1;
+        ok(typeof shared === 'object', 'shared argument is an object');
+        shared.idx = 0;
+        sharedRef = shared;
+      } else {
+        shared.idx++;
+        ok(shared === sharedRef, 'shared object is the same');
+      }
+    };
+  genData(
+    [1],
+    [
+      parser,
+      parser
+    ]
+  );
+  equal(sharedRef.idx, 3, 'parsers see same shared object between iterations');
 });
 
 test('flags.omit', function () {
