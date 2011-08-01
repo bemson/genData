@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(7/30/11)
-version 0.9
+(8/1/11)
+version 1.0
 by Bemi Faison
 
 
@@ -16,9 +16,10 @@ genData is a recursive, depth-first iterator and generic parser, for querying ob
 
 
 * gendata-min.js - genData source file (minified with [UglifyJS](http://marijnhaverbeke.nl/uglifyjs) )
-* src/ - Directory containing the source code
 * LICENSE - The legal terms and conditions under which this software may be used
 * README.md - This readme file
+* src/ - Directory containing the source code
+* src-test/ - Directory containing [Qunit](http://docs.jquery.com/Qunit) test files
 
 
 ## USAGE
@@ -107,13 +108,14 @@ Parser functions have the following signature:
    - omit: When truthy, the current data object is excluded from the final dataset.
    - scan: When falsy, properties of the current data object will not be processed.
    - exit: When truthy, genData stops all parsing and iteration.
+ - shared - _Object_, An object with no members, preserved between iterations.
 
 Setting keys in the `flags` object, directly impacts how genData traverses and parses an object. Below the parser filters data objects via the "omit", after testing the type of the value.
 
 ```js
     var allFncData = genData(
         anyObject,
-        function (name, value, parent, dataset, flags) {
+        function (name, value, parent, dataset, flags, shared) {
           flags.omit = typeof value !== 'function';
         }
       );
@@ -124,7 +126,7 @@ Access to the dataset array, allows parsers to control it's contents. This examp
 ```js
     var allFncs = genData(
         anyObject,
-        function (name, value, parent, dataset, flags) {
+        function (name, value, parent, dataset, flags, shared) {
           flags.omit = 1; // don't let anything in the dataset
           if (typeof value === 'function') {
             dataset.push(value);
@@ -142,7 +144,7 @@ Spawn generators by calling genData with the `new` operator, along with one or m
 
 ```js
     var genRandom = new genData(
-        function (name, value, parent, dataset, flags) {
+        function (name, value, parent, dataset, flags. shared) {
           this.random = Math.random();
         },
         // ... more parser functions
@@ -158,7 +160,7 @@ Below demonstrates two identical genData calls. One made via the generator `genR
 
     var manualCall = genData(
         anything,
-        function (name, value, parent, dataset, flags) {
+        function (name, value, parent, dataset, flags, shared) {
           this.random = Math.random();
         }
       );
@@ -168,7 +170,7 @@ Spawn generators from existing ones, in order to build comprehensive parser conf
 
 ```js
     var genLuckyPicks = new genRandom(
-        function (name, value, parent, dataset, flags) {
+        function (name, value, parent, dataset, flags, shared) {
           var lucky = Math.round(this.random);
           if (!lucky) {
             this.omit = 1;
@@ -245,9 +247,6 @@ Below demonstrates how spawned generators extend the prototype chain.
     };
 ```
 
----
-
-Full documentation is under development.
 
 ## LICENSE
 
