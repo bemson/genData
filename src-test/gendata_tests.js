@@ -201,7 +201,7 @@ test('remove properties', function () {
   }
 });
 
-test('presevering original value between parsers', function () {
+test('preserving original value between parsers', function () {
   var originalValue = 'foo';
   genData(
     originalValue,
@@ -242,6 +242,38 @@ test('preserving shared object between parsers and iterations', 5, function () {
     ]
   );
   equal(sharedRef.idx, 3, 'parsers see same shared object between iterations');
+});
+
+test('flags.parent', function () {
+  var passParentFnc = function (name, value, parent, dataset, flags) {
+      this.parent = parent;
+      flags.parent = parent;
+    },
+    sampleData = [[1]],
+    simpleSet = genData(sampleData, passParentFnc),
+    genChain = new genData(passParentFnc),
+    chainSet = genChain(sampleData),
+    model = function () {},
+    modelSet = genData(sampleData, passParentFnc, model),
+    failSetFalsy = genData(sampleData, function (name, value, parent, dataset, flags) {
+      this.parent = parent;
+      flags.parent = 0;
+    }),
+    failSetTruthy = genData(sampleData, function (name, value, parent, dataset, flags) {
+      this.parent = parent;
+      flags.parent = 1;
+    }),
+    failSetObject = genData(sampleData, function (name, value, parent, dataset, flags) {
+      this.parent = parent;
+      flags.parent = {};
+    });
+
+  equal(simpleSet[1].parent, simpleSet.pop().parent, 'parent change works');
+  equal(chainSet[1].parent, chainSet.pop().parent, 'parent may be instanceof genData');
+  equal(modelSet[1].parent, modelSet.pop().parent, 'parent may be the substituted model');
+  notEqual(failSetFalsy[1].parent, failSetFalsy.pop().parent, 'flags.parent can not be falsy');
+  notEqual(failSetTruthy[1].parent, failSetTruthy.pop().parent, 'flags.parent can not be truthy');
+  notEqual(failSetObject[1].parent, failSetObject.pop().parent, 'flags.parent can not be any object');
 });
 
 test('flags.omit', function () {
