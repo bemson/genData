@@ -154,7 +154,6 @@ test('an array of functions as second argument', function () {
   );
 });
 
-
 test('scope and signature', function () {
   genData('anything', function (name, value, parent, dataset, flags) {
     var args = arguments;
@@ -331,7 +330,6 @@ test('alter the dataset', function () {
   deepEqual(dataset, fauxValues, 'final dataset has been augmented');
 });
 
-
 module('Generator');
 
 test('spawning', 8, function () {
@@ -354,8 +352,20 @@ test('spawning', 8, function () {
   ok(dataset[0].constructor === gen, 'data object constructor is generator');
 });
 
-test('signature', function () {
-  
+test('signature', 5, function () {
+  var val = 8,
+    fnc = function () {
+      this.id = val;
+    },
+    genX = new genData(fnc),
+    model = function () {},
+    genXY = new genX(fnc),
+    genXYZ = new genX(fnc, fnc);
+  equal('function', typeof genXY, 'can spawn generator passing one parser');
+  equal('function', typeof genXYZ, 'can spawn generator passing more parsers');
+  equal(val, genX(1, fnc)[0].id, 'accepts a single parser');
+  equal(val, genX(1, [fnc, fnc])[0].id, 'accepts an array of parsers');
+  equal(model, genX(1, [], model)[0].constructor, 'accepts a base model');
 });
 
 test('compounding', function () {
