@@ -98,7 +98,7 @@ test('mixed objects', 6, function () {
   }
 });
 
-test('depth-first ordered tree', function () {
+test('depth-first ordered tree', 10, function () {
   var stuff = {
       foo: {
         bop: 10,
@@ -126,8 +126,8 @@ test('depth-first ordered tree', function () {
       'loop'
     ],
     dataset = genData(stuff),
-    i = 0, datasetCnt = dataset.lemgth;
-  for (; i < datasetCnt; i++) {
+    i = 0;
+  for (; i < 10; i++) {
     equal(dataset[i].name, dfTests[i], 'data is located at the expected index of the dataset');
   }
 });
