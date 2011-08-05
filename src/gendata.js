@@ -19,6 +19,7 @@ function genData(stuff) {
     currentParserIndex,
     totalParsers,
     memberName,
+    parentRef,
     parsers = [],
     dataset = [],
     sharedVars = {},
@@ -82,11 +83,13 @@ function genData(stuff) {
       /**
        * Reset the flags object passed to _parser_ functions.
        *
+       * - **parent**: When a data object, the instance to parent any scanned and queued properties
        * - **omit**: When truthy, the data object is excluded from the dataset
        * - **scan**: When falsy, members of the data object are not processed
        * - **exit**: When truthy, genData stops processing the queue
        */
       parserFlags = {
+        parent: 0, // auto, by default
         omit: 0, // false, by default
         scan: 1, // truthy, by default
         exit: 0 // falsy, by default
@@ -140,12 +143,13 @@ function genData(stuff) {
       else {
         queueBuffer = [];
         if (parserFlags.scan && typeof dataInstance.value === 'object') {
+          parentRef = (parserFlags.parent && (parserFlags.parent instanceof dataModel || parserFlags.parent instanceof origFnc)) ? parserFlags.parent : dataInstance;
           for (memberName in dataInstance.value) {
             if (dataInstance.value.hasOwnProperty(memberName)) {
               queueBuffer.push([
                 memberName, // _name_ passed to "new Data()"
                 dataInstance.value[memberName], // _value_ passed to "new Data()"
-                dataInstance // _parent_ (argument [2]) passed to parsers
+                parentRef // _parent_ (argument [2]) passed to parsers
               ]);
             }
           }
