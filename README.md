@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(8/1/11)
-version 1.0
+(8/4/11)
+version 1.1
 by Bemi Faison
 
 
@@ -105,6 +105,7 @@ Parser functions have the following signature:
  - parent - _Data_, The data object, whose value contains this data object's corresponding property.
  - dataset - _Array_, The array returned when genData has completed normalizing an object.
  - flags - _Object_, Collection of keys for controlling genData.
+   - parent: The parent to pass for child data objects derived from the current value.
    - omit: When truthy, the current data object is excluded from the final dataset.
    - scan: When falsy, properties of the current data object will not be processed.
    - exit: When truthy, genData stops all parsing and iteration.
