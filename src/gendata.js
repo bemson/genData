@@ -5,11 +5,11 @@
  * **genData** generates normalized datasets and functions that encapsulate customizations while extending the prototype-chain.
  */
 /**
- * Define genData in the global scope.
+ * Define genData in the global scope, or export as a module if we're in a commonjs environment.
  *
  * This function forks it's behavior when called with the `new` statement.
  */
-function genData(stuff) {
+(typeof exports !== 'undefined' ? exports : window).genData = function(stuff) {
 /**
  * Declare all variables, most of which are placeholders.
  */
@@ -19,14 +19,15 @@ function genData(stuff) {
     currentParserIndex,
     totalParsers,
     memberName,
-    parentRef,
     parsers = [],
     dataset = [],
+    parentRef,
     sharedVars = {},
     queue,
     queueBuffer,
     queueItem,
     dataModel = origFnc,
+    isDataModelConstructor = typeof dataModel === 'function',
     dataInstance;
 /**
  * When invoked without the `new` operator, genData presumes it will normalize `stuff` and return a dataset.
@@ -51,16 +52,13 @@ function genData(stuff) {
     /**
      * Define an anonymous Data constructor.
      *
-     * Set the constructor's prototype to the resolved dataModel (genData by default).
-     *
-     * For completeness, match the prototype's constructor to it's prototype function.
+     * Set the prototype to the resolved dataModel (genData by default).
      */
     function Data(name, value) {
       this.name = name;
       this.value = value;
     }
-    Data.prototype = dataModel.prototype;
-    Data.prototype.constructor = dataModel;
+    Data.prototype = isDataModelConstructor ? dataModel.prototype : dataModel;
 
     /**
      * Queue an array of parameters, needed to instantiate a Data object.
@@ -143,7 +141,7 @@ function genData(stuff) {
       else {
         queueBuffer = [];
         if (parserFlags.scan && typeof dataInstance.value === 'object') {
-          parentRef = (parserFlags.parent && (parserFlags.parent instanceof dataModel || parserFlags.parent instanceof origFnc)) ? parserFlags.parent : dataInstance;
+          parentRef = typeof parserFlags.parent === 'object' ? parserFlags.parent : dataInstance;
           for (memberName in dataInstance.value) {
             if (dataInstance.value.hasOwnProperty(memberName)) {
               queueBuffer.push([
@@ -202,14 +200,14 @@ function genData(stuff) {
       return this;
     }
     /**
-     * Chain this function to a given prototype, set it's constructor, and return it as a genData _generator_.
+     * Chain this function to a given prototype, and return it as a genData _generator_.
      */
-    Generator.prototype = new dataModel();
-    Generator.prototype.constructor = dataModel;
+    Generator.prototype = isDataModelConstructor ? new dataModel() : dataModel;
     return Generator;
   }
   /**
-   * Finally, if invoked with `new` but given no arguments, we return an instance of genData. (This signature would be used for prototyping chaining.)
+   * Finally, if invoked with `new` but given no arguments, we return an instance of genData.
+   * This signature would be used for prototyping chaining.
    */
   return this;
-}
+};
