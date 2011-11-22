@@ -1,104 +1,141 @@
-module('Normalize');
+module('Basics');
 
-test("nothing", 8, function () {
-  var dataset = genData();
-  equal(typeof dataset, 'object', 'Returns an object');
-  ok(~{}.toString.call(dataset).indexOf('y'), 'Outputs an array');
-  equal(dataset.constructor, Array, "The object's constructor is Array");
-  equal(dataset.length, 1, 'The dataset has one data object');
-  ok(dataset[0].hasOwnProperty('name'), 'The data object has a name member.');
-  ok(dataset[0].hasOwnProperty('value'), 'The data object has a value member.');
-  strictEqual(dataset[0].name, '', 'The data name is an empty string.');
-  strictEqual(dataset[0].value, undefined, 'The data value is undefined.');
+test('Presence', 2, function () {
+  equal(typeof genData, 'function', 'genData is a function.');
+  equal(genData.length, 1, 'genData expects one or more parameters.');
 });
 
-test("objects", 5, function () {
-  var stuff = {
-      foo: 'bar'
+test('Dataset', 5, function () {
+  var dataset = genData();
+  ok(dataset instanceof Array, "The dataset returned by genData is an array.");
+  ok(dataset[0].hasOwnProperty('name'), 'Each data object has a "name" member.');
+  equal(typeof dataset[0].name, 'string', 'The "name" member is a string.');
+  ok(dataset[0].hasOwnProperty('value'), 'Each data object has a "value" member.');
+  strictEqual(dataset[0].name, '', 'By default, the first data object\'s "name" member is an empty string.');
+});
+
+module('Normalize');
+
+test("nothing", 2, function () {
+  var dataset = genData(),
+    undefSet = genData(undefined);
+  equal(dataset.length, 1, 'genData returns a dataset with one item, when passed nothing or "undefined".');
+  deepEqual(dataset, undefSet, 'Passing nothing or undefined, results in the same dataset.');
+});
+
+test("objects", 3, function () {
+  var bar = {},
+    stuff = {
+      foo: bar,
+      ping: 'pong'
     },
-    dataset = genData(stuff),
-    i = 0, datasetCnt = dataset.length;
-  equal(datasetCnt, 2, 'The dataset contains the correct number of data objects');
-  for (; i < datasetCnt; i++) {
-    ok(dataset[i].hasOwnProperty('name'), 'This data object has a name member.');
-    ok(dataset[i].hasOwnProperty('value'), 'This data object has a value member.');
-  }
+    dataset = genData(stuff);
+  equal(dataset.length, (function () {
+    var cnt = 0, i;
+    for (i in stuff) {
+      if (stuff.hasOwnProperty(i)) {
+        cnt++;
+      }
+    }
+    return cnt;
+  })() + 1, 'The normalized object has the expected number of data objects.');
+  strictEqual(dataset[0].value, stuff, 'The value of the first data object references the first argument passed to genData.');
+  ok(!!function () {
+    var i = 0, cnt = 0,
+      ds = [{name:'',value:stuff}, {name:'foo',value:bar}, {name:'ping',value:'pong'}];
+    for (; i < dataset.length; i++) {
+      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
+        cnt++;
+      }
+    }
+    return cnt === dataset.length;
+  }, 'genData normalized the object into the expected dataset format.');
 });
 
 test('arrays', function () {
   var stuff = ['alpha', 'beta', 'disco', 'theta'],
     dataset = genData(stuff),
+    nbrNames = 0,
     i = 0, datasetCnt = dataset.length;
-  equal(datasetCnt, stuff.length + 1, 'Has expected number of data objects.');
+  equal(datasetCnt, stuff.length + 1, 'The normalized array has the expected number of data objects.');
   for (; i < datasetCnt; i++) {
-    equal(typeof dataset[i].name, 'string', 'The data name is a string.');
-    if (i) {
-      equal(dataset[i].name, i - 1, 'The data name is numeric.');
-      equal(dataset[i].value, stuff[i - 1], 'The data value is correct');
-    } else {
-      equal(dataset[i].value, stuff,'The data value is correct');
+    if (dataset[i].name == i - 1) {
+      nbrNames++;
     }
   }
+  equal(nbrNames, stuff.length, 'The array element\'s index becomes the "name" member.');
+  ok(!!function () {
+    var i = 0, cnt = 0,
+      ds = [{name: '', value: stuff}, {name:'0', value:'alpha'}, {name:'1',value:'beta'}, {name:'2',value:'disco'}, {name:'3',value:'theta'}];
+    for (; i < dataset.length; i++) {
+      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
+        cnt++;
+      }
+    }
+    return cnt === dataset.length;
+  }, 'genData normalized the array into the expected dataset format.');
 });
 
 test('associative-arrays', 3, function () {
-  var stuff = ['alpha', 'beta'],
-    assocKeyValue = 'foo',
+  var stuff = [],
+    assocKeyValue = 'pong',
+    assocKeyName = 'ping',
     dataset,
     i = 0, datasetCnt;
-  stuff.assocKey = assocKeyValue;
+  stuff[assocKeyName] = assocKeyValue;
   dataset = genData(stuff);
   datasetCnt = dataset.length;
-  equal(datasetCnt, stuff.length + 2, 'Has expected number of data objects.');
+  equal(datasetCnt, stuff.length + 2, 'The normalized associative-array has the expected number of data objects.');
   for (; i < datasetCnt; i++) {
-    if (dataset[i].name === 'assocKey') {
-      ok(true, 'the associative key was parsed');
-      equal(dataset[i].value, assocKeyValue, 'the data object for the key has the correct value')
+    if (dataset[i].name === assocKeyName) {
+      equal(dataset[i].value, assocKeyValue, 'genData creates data objects for non-indexed members of an associative array.');
       break;
     }
   }
-});
-
-test('functions', 5, function () {
-  var stuff = function () {},
-    dataset = genData(stuff);
-  equal(dataset.length, 1, 'Has expected number of data objects.');
-  ok(dataset[0].hasOwnProperty('name'), 'The data object has a name member.');
-  ok(dataset[0].hasOwnProperty('value'), 'The data object has a value member.');
-  strictEqual(dataset[0].name, '', 'The data name is an empty string.');
-  strictEqual(dataset[0].value, stuff, 'The data value is the function.');
-});
-
-test('mixed objects', 6, function () {
-  var stuff = {
-      foo: 'bar',
-      pot: [
-        'kettle',
-        function () {}
-      ]
-    },
-    dataset = genData(stuff),
-    nvTests = [
-      ['', stuff],
-      ['foo', stuff.foo],
-      ['pot', stuff.pot],
-      ['0', stuff.pot[0]],
-      ['1', stuff.pot[1]]
-    ],
-    i = 0, nvCnt = nvTests.length,
-    x, datasetCnt = dataset.length;
-  equal(datasetCnt, nvCnt, 'Has expected number of data objects.');
-  for (; i < nvCnt; i++) {
-    for (x = 0; x < datasetCnt; x++) {
-      if (dataset[x].name === nvTests[i][0]) {
-        equal(dataset[x].value, nvTests[i][1], 'The data object has the expected value.');
-        break;
+  ok(!!function () {
+    var i = 0, cnt = 0,
+      ds = [{name: '', value: stuff}, {name:assocKeyName, value:assocKeyValue}];
+    for (; i < dataset.length; i++) {
+      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
+        cnt++;
       }
     }
-  }
+    return cnt === dataset.length;
+  }, 'genData normalized the associative-array into the expected dataset format.');
 });
 
-test('depth-first ordered tree', 10, function () {
+test('functions', 2, function () {
+  var stuff = function () {},
+    dataset = genData(stuff);
+  equal(dataset.length, 1, 'The normalized function has the expected number of data objects.');
+  strictEqual(dataset[0].value, stuff, 'The first data object value is the function.');
+});
+
+test('mixed object', 2, function () {
+  var potAryFnc = function () {},
+    potAry = [
+      'kettle',
+      potAryFnc
+    ],
+    stuff = {
+      foo: 'bar',
+      pot: potAry
+    },
+    dataset = genData(stuff);
+  equal(dataset.length, 5, 'The normalized mixed-object has the expected number of data objects.');
+  ok(!!function () {
+    var i = 0, cnt = 0,
+      ds = [{name: '', value: stuff}, {name:'foo', value:'bar'}, {name:'pot', value:potAry}, {name:'0', value:'kettle'}, {name:'1', value:potAryFnc}];
+    for (; i < dataset.length; i++) {
+      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
+        cnt++;
+      }
+    }
+    return cnt === dataset.length;
+  }, 'genData normalized the mixed-object into the expected dataset format.');
+});
+
+test('depth-first ordered tree', 1, function () {
   var stuff = {
       foo: {
         bop: 10,
@@ -113,7 +150,7 @@ test('depth-first ordered tree', 10, function () {
       },
       loop: 60
     },
-    dfTests = [
+    dsOrder = [
       '',
       'foo',
       'bop',
@@ -125,14 +162,40 @@ test('depth-first ordered tree', 10, function () {
       '1',
       'loop'
     ],
+    dsOrderTest = 0,
     dataset = genData(stuff),
     i = 0;
-  for (; i < 10; i++) {
-    equal(dataset[i].name, dfTests[i], 'data is located at the expected index of the dataset');
+  for (; i < dataset.length; i++) {
+    if (dataset[i].name === dsOrder[i]) {
+      dsOrderTest++;
+    }
   }
+  equal(dsOrder.length, dsOrderTest, 'Each data object occurs in the expected order.');
 });
 
-module('Parser');
+module('Parsers');
+
+test('scope and signature', function () {
+  genData('anything', function (name, value, parent, dataset, flags) {
+    var args = arguments;
+    equal(this.constructor, genData, 'scope is a genData instance');
+    equal(args.length, 6, 'has expected number of arguments');
+    equal(typeof name, 'string', 'name is a string');
+    if (dataset.length) {
+      equal(typeof parent, 'object', 'parent is an object');
+      equal(parent.constructor, genData, 'parent is a genData instance');
+    } else {
+      ok(!parent, 'the first data object has no parent');
+    }
+    equal(typeof flags, 'object', 'flags is an object');
+    ok(flags.hasOwnProperty('omit'), 'omit flag is present');
+    ok(!flags.omit, 'omit flag is false by default');
+    ok(flags.hasOwnProperty('scan'), 'scan flag is present');
+    ok(flags.scan, 'scan flag is true by default');
+    ok(flags.hasOwnProperty('exit'), 'exit flag is present');
+    ok(!flags.exit, 'exit flag is false by default');
+  });
+});
 
 test('one function as second argument', function () {
   genData('anything', function () {
@@ -152,29 +215,6 @@ test('an array of functions as second argument', function () {
       }
     ]
   );
-});
-
-test('scope and signature', function () {
-  genData('anything', function (name, value, parent, dataset, flags) {
-    var args = arguments;
-    equal(this.constructor, genData, 'scope is a genData instance');
-    equal(args.length, 6, 'has expected number of arguments');
-    equal(typeof name, 'string', 'name is a string');
-    if (dataset.length) {
-      equal(typeof parent, 'object', 'parent is an object');
-      equal(parent.constructor, genData, 'parent is a genData instance');
-    } else {
-      ok(!parent, 'the first data object has no parent');
-    }
-    equal(dataset.constructor, Array, 'dataset is an array');
-    equal(typeof flags, 'object', 'flags is an object');
-    ok(flags.hasOwnProperty('omit'), 'omit flag is present');
-    ok(!flags.omit, 'omit flag is false by default');
-    ok(flags.hasOwnProperty('scan'), 'scan flag is present');
-    ok(flags.scan, 'scan flag is true by default');
-    ok(flags.hasOwnProperty('exit'), 'exit flag is present');
-    ok(!flags.exit, 'exit flag is false by default');
-  });
 });
 
 test('add property', function () {
@@ -332,7 +372,7 @@ test('alter the dataset', function () {
 
 module('Generator');
 
-test('spawning', 8, function () {
+test('spawning', 7, function () {
   var tic = 0,
     parser = function () {
       ok(1, 'parser passed from generator to genData');
@@ -349,7 +389,6 @@ test('spawning', 8, function () {
   genData = tmp;
   gen(1, parser);
   gen(1, [parser]);
-  ok(dataset[0].constructor === gen, 'data object constructor is generator');
 });
 
 test('signature', 5, function () {
@@ -365,7 +404,7 @@ test('signature', 5, function () {
   equal('function', typeof genXYZ, 'can spawn generator passing more parsers');
   equal(val, genX(1, fnc)[0].id, 'accepts a single parser');
   equal(val, genX(1, [fnc, fnc])[0].id, 'accepts an array of parsers');
-  equal(model, genX(1, [], model)[0].constructor, 'accepts a base model');
+  ok(genX(1, [], model)[0] instanceof model, 'accepts a base model');
 });
 
 test('compounding', function () {
@@ -403,10 +442,8 @@ test('chaining', function () {
   ok(dog instanceof genAnimal, 'dog comes from animal generator');
   ok(dog instanceof genDog, 'dog comes from dog generator');
   ok(dog instanceof genData, 'dog comes from genData');
-  ok(dog.constructor === genDog, 'dog is a genDog instance');
   ok(fruit instanceof genFruit, 'fruit comes from fruit generator');
   ok(fruit instanceof genData, 'fruit comes from genData');
-  ok(fruit.constructor === genFruit, 'fruit is a genFruit instance');
 });
 
 test('methods', function () {
