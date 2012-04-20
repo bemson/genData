@@ -1,8 +1,8 @@
 # genData
 A normalization pattern to build, query, and manipulate everything.
 
-(11/21/11)
-version 1.2.0
+(4/20/12)
+version 1.2.1
 by Bemi Faison
 
 
@@ -17,7 +17,7 @@ genData is a recursive, depth-first iterator and generic parser, for querying ob
 * LICENSE - The legal terms and conditions under which this software may be used
 * README.md - This readme file
 * src/ - Directory containing the source code
-* src-test/ - Directory containing [Qunit](http://docs.jquery.com/Qunit) test files
+* test/ - Directory containing [Qunit](http://docs.jquery.com/Qunit) test files
 
 
 ## INSTALL
