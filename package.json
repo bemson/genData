@@ -1,6 +1,6 @@
 {
   "name": "genData"
-  , "version": "1.2.0"
+  , "version": "1.2.1"
   , "description": "A normalization pattern to build, query, and manipulate everything."
   , "keywords": [
     "data"
