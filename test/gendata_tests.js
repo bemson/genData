@@ -494,3 +494,26 @@ test('substitute base models', function () {
   equal(1, dataModel[0].getValue(), 'substitute prototype methods work');
   equal(finalTic, tic, 'Parsers fire during prototype substitution');
 });
+
+test('with an object instead of a constructor', function () {
+  var
+    protoObj = {
+      getValue: function () {
+        return this.value;
+      }
+    }
+    , stuff = {
+      first: 'value'
+      , second: 'bar'
+    }
+    , genFoo = new genData(protoObj, [])
+    , fooSet = genFoo(stuff).slice(1)
+  ;
+  protoObj.getName = function () {
+    return this.name;
+  };
+  equal(typeof fooSet[0].getValue, 'function', 'Methods of the object protoype are available in the data instance prototype.');
+  equal(typeof fooSet[0].getName, 'function', 'Methods added to the prototype are added to data instances.');
+  equal(fooSet[0].getValue(), stuff.first, 'Methods from an object prototype are scoped to the given data instance.');
+  equal(typeof genData(stuff, [], protoObj)[0].getName, 'function', 'Works when passing an object prototype directly to genData.');
+});
