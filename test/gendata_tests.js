@@ -157,7 +157,7 @@ test('arrays', 2, function () {
   equal(dataset[1].name, parseInt(dataset[1].name), 'The "name" member of array data objects is the element index.');
 });
 
-test('associative-arrays', 3, function () {
+test('associative-arrays', 2, function () {
   var stuff = [],
     assocKeyName = 'ping',
     val = Math.random(),
@@ -177,7 +177,7 @@ test('associative-arrays', 3, function () {
   equal(dataset[1].value, val, 'Numeric members are processed like array indexed elements.');
 });
 
-module('Parser arguments');
+module('Parser signature');
 
 test('[0] name', 2, function () {
   var
