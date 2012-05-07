@@ -339,7 +339,7 @@ test('parent', 2, function () {
   );
 });
 
-test('omit', 4, function () {
+test('omit', 5, function () {
   var
     stuff = [Math.random()],
     iteration = 0,
@@ -358,6 +358,17 @@ test('omit', 4, function () {
   notEqual(dataset.length, datasetOmit.length, 'Reduces the number of dataset entries.');
   ok(dataOmit.hasOwnProperty('_OMIT') && dataOmit._OMIT === true, 'Omitted data objects have an "_OMIT" member, set to true.');
   equal(dataset[1].value, datasetOmit[0].value, 'Descendent members of omitted data objects are still processed.');
+  iteration = 0;
+  datasetOmit = genData(
+    stuff,
+    function (name, value, parent, dataset, flags) {
+      if (iteration++) {
+        ok(parent.hasOwnProperty('_OMIT'), 'Omitted data objects are still passed as the "parent" argument, when processing child data objects.');
+      } else {
+        flags.omit = 1;
+      }
+    }
+  );
 });
 
 test('scan', 4, function () {
