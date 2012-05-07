@@ -1,519 +1,439 @@
 module('Basics');
 
-test('Presence', 2, function () {
+test('Namespace', 4, function () {
   equal(typeof genData, 'function', 'genData is a function.');
+  equal(typeof genData.spawn, 'function', 'genData.spawn is a method.');
   equal(genData.length, 1, 'genData expects one or more parameters.');
+  equal(genData.spawn.length, 0, 'genData.spawn() expects zero parameters.');
 });
 
-test('Dataset', 5, function () {
-  var dataset = genData();
+test('Dataset', 3, function () {
+  var stuff = [1,'pipe',['echo',9]],
+    dataset = genData(stuff);
   ok(dataset instanceof Array, "The dataset returned by genData is an array.");
-  ok(dataset[0].hasOwnProperty('name'), 'Each data object has a "name" member.');
-  equal(typeof dataset[0].name, 'string', 'The "name" member is a string.');
-  ok(dataset[0].hasOwnProperty('value'), 'Each data object has a "value" member.');
-  strictEqual(dataset[0].name, '', 'By default, the first data object\'s "name" member is an empty string.');
+  ok(dataset.every(function (data) {return data.hasOwnProperty('name') && typeof data.name === 'string';}), 'Each data object has the string member "name".');
+  ok(dataset.every(function (data) {return data.hasOwnProperty('value');}), 'Each data object has the member "value".');
+});
+
+test('Parser', 10, function () {
+  var
+    stuff = 'anything',
+    val1 = 0,
+    val2 = val1 + 1,
+    data,
+    datasetParam,
+    dataset = genData(
+      stuff,
+      function (name, value, parent, dataset, flags, shared) {
+        data = this;
+        equal(typeof this, 'object', 'The parser function scope is a data object.');
+        ok(this instanceof genData, 'The data object is a genData instance.');
+        equal(arguments.length, 6, 'The parser signature is six arguments.');
+        equal(typeof name, 'string', 'The first parameter, "name", is a string.');
+        ok(dataset instanceof Array, 'The fourth parameter, "dataset", is an array.');
+        equal(typeof flags, 'object', 'The fifth parameter, "flags", is an object.');
+        equal(typeof shared, 'object', 'The six parameter, "shared", is an object.');
+        val1++;
+        datasetParam = dataset;
+      },
+      function () {
+        equal(val1, val2, 'genData executes parsers in the order they are passed.');
+        ok(this === data, 'Parsers operate on the same data object.');
+      }
+    );
+  ok(datasetParam === dataset, 'The "dataset" parameter, given to parsers, is the array returned by genData.');
+});
+
+test('Generator', 6, function () {
+  var
+    stuff = 'anything',
+    trail = [],
+    p1 = function () {trail.push(1);},
+    p2 = function () {trail.push(0);},
+    genA = genData.spawn(p1, p2),
+    genB = genA.spawn();
+  equal(typeof genA, 'function', 'genData.spawn() returns a generator.');
+  equal(typeof genB, 'function', 'The .spawn() method of a generator, returns a new generator.');
+  genA(stuff);
+  genData(stuff, p1, p2);
+  deepEqual(trail, [1,0,1,0], 'Generators curry parser configurations.');
+  genB(stuff);
+  deepEqual(trail, [1,0,1,0,1,0], 'Generators spawned from generators, preserve curried parser configurations.');
+  ok(
+    genData.prototype.isPrototypeOf(genA.prototype) &&
+    genData.prototype.isPrototypeOf(genB.prototype) &&
+    genA.prototype.isPrototypeOf(genB.prototype) &&
+    !genB.prototype.isPrototypeOf(genA.prototype),
+    'Generators extend the prototype-chain of the generator that spawned them.'
+  );
+  ok((genB())[0] instanceof genB, 'Data objects share the prototype of their generator.');
 });
 
 module('Normalize');
 
-test("nothing", 2, function () {
-  var dataset = genData(),
-    undefSet = genData(undefined);
-  equal(dataset.length, 1, 'genData returns a dataset with one item, when passed nothing or "undefined".');
-  deepEqual(dataset, undefSet, 'Passing nothing or undefined, results in the same dataset.');
+test('defaults', 2, function () {
+  var
+    stuff = [[0],'foo'],
+    dataset = genData(stuff);
+  strictEqual(dataset[0].name, '', 'The "name" member of the first data object is an empty string.');
+  ok(dataset[0].value === stuff, 'The "value" member of the first data object is the argument passed to genData.');
 });
 
-test("objects", 3, function () {
-  var bar = {},
+test("nothing", 5, function () {
+  var emptySet = genData(),
+    nullSet = genData(null),
+    undefinedSet = genData(undefined);
+  equal(emptySet.length, 1, 'genData returns a dataset with one item, when called with no arguments.');
+  equal(nullSet.length, 1, 'genData returns a dataset with one item, when passed "null".');
+  equal(undefinedSet.length, 1, 'genData returns a dataset with one item, when passed "undefined".');
+  equal(JSON.stringify(emptySet), JSON.stringify(undefinedSet), 'Passing "undefined" returns the same dataset resulting from no arguments.');
+  notEqual(JSON.stringify(emptySet), JSON.stringify(nullSet), 'Passing "null" returns a different dataset than that from no arguments.');
+});
+
+test('scalar values', 3, function () {
+  var
+    string = 'hello world!',
+    number = Math.random(),
+    boolean = true,
+    stringSet = genData(string),
+    numberSet = genData(number),
+    booleanSet = genData(boolean);
+  equal(stringSet.length, 1, 'The dataset from a string has one item.');
+  equal(numberSet.length, 1, 'The dataset from a number has one item.');
+  equal(booleanSet.length, 1, 'The dataset from a boolean has one item.');
+});
+
+test('scalar objects', 3, function () {
+  var
+    string = new String('hello world'),
+    number = new Number(Math.random()),
+    boolean = new Boolean(true),
+    stringSet = genData(string),
+    numberSet = genData(number),
+    booleanSet = genData(boolean);
+  equal(stringSet.length, string.length + 1, 'The dataset from a string object has one data object (for the initial value), plus an item for each character.');
+  equal(numberSet.length, 1, 'The dataset from a number object has one item.');
+  equal(booleanSet.length, 1, 'The dataset from a boolean object has one item.');
+});
+
+test("objects", 2, function () {
+  var
+    firstChildName = 'hello',
+    firstChildValue = Math.random(),
+    secondChildName = 'world',
+    secondChildValue = Math.random(),
     stuff = {
-      foo: bar,
-      ping: 'pong'
+      foo: 'bar',
+      baz: {
+        foo: 'bar',
+        baz: {
+          foo: 'bar'
+        }
+      }
     },
     dataset = genData(stuff);
-  equal(dataset.length, (function () {
-    var cnt = 0, i;
-    for (i in stuff) {
-      if (stuff.hasOwnProperty(i)) {
-        cnt++;
-      }
-    }
-    return cnt;
-  })() + 1, 'The normalized object has the expected number of data objects.');
-  strictEqual(dataset[0].value, stuff, 'The value of the first data object references the first argument passed to genData.');
-  ok(!!function () {
-    var i = 0, cnt = 0,
-      ds = [{name:'',value:stuff}, {name:'foo',value:bar}, {name:'ping',value:'pong'}];
-    for (; i < dataset.length; i++) {
-      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
-        cnt++;
-      }
-    }
-    return cnt === dataset.length;
-  }, 'genData normalized the object into the expected dataset format.');
+  equal(
+    dataset.length,
+    JSON.stringify(stuff).match(/\":/g).length + 1,
+    'The dataset for an object has an entry for each descendent members plus the initial object.'
+  );
+  stuff = {};
+  stuff[firstChildName] = firstChildValue;
+  stuff[secondChildName] = secondChildValue;
+  dataset = genData(stuff);
+  ok(dataset[1].name === firstChildName && dataset[2].name === secondChildName, 'Child members are indexed in the order they are added to an object.');
 });
 
-test('arrays', function () {
-  var stuff = ['alpha', 'beta', 'disco', 'theta'],
+test('arrays', 2, function () {
+  var stuff = ['alpha', 'beta', 'theta'],
     dataset = genData(stuff),
     nbrNames = 0,
     i = 0, datasetCnt = dataset.length;
-  equal(datasetCnt, stuff.length + 1, 'The normalized array has the expected number of data objects.');
-  for (; i < datasetCnt; i++) {
-    if (dataset[i].name == i - 1) {
-      nbrNames++;
-    }
-  }
-  equal(nbrNames, stuff.length, 'The array element\'s index becomes the "name" member.');
-  ok(!!function () {
-    var i = 0, cnt = 0,
-      ds = [{name: '', value: stuff}, {name:'0', value:'alpha'}, {name:'1',value:'beta'}, {name:'2',value:'disco'}, {name:'3',value:'theta'}];
-    for (; i < dataset.length; i++) {
-      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
-        cnt++;
-      }
-    }
-    return cnt === dataset.length;
-  }, 'genData normalized the array into the expected dataset format.');
+  equal(
+    dataset.length,
+    stuff.length + 1,
+    'The dataset for an array has an entry for each descendent members plus the initial array.'
+  );
+  equal(dataset[1].name, parseInt(dataset[1].name), 'The "name" member of array data objects is the element index.');
 });
 
 test('associative-arrays', 3, function () {
   var stuff = [],
-    assocKeyValue = 'pong',
     assocKeyName = 'ping',
-    dataset,
-    i = 0, datasetCnt;
-  stuff[assocKeyName] = assocKeyValue;
+    val = Math.random(),
+    val2 = val + 1,
+    indexKeyName = '0',
+    dataset;
+  stuff[assocKeyName] = val;
+  stuff.push(val2);
   dataset = genData(stuff);
-  datasetCnt = dataset.length;
-  equal(datasetCnt, stuff.length + 2, 'The normalized associative-array has the expected number of data objects.');
-  for (; i < datasetCnt; i++) {
-    if (dataset[i].name === assocKeyName) {
-      equal(dataset[i].value, assocKeyValue, 'genData creates data objects for non-indexed members of an associative array.');
-      break;
-    }
-  }
-  ok(!!function () {
-    var i = 0, cnt = 0,
-      ds = [{name: '', value: stuff}, {name:assocKeyName, value:assocKeyValue}];
-    for (; i < dataset.length; i++) {
-      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
-        cnt++;
-      }
-    }
-    return cnt === dataset.length;
-  }, 'genData normalized the associative-array into the expected dataset format.');
+  equal(dataset.length, stuff.length + 2, 'The dataset for an associative-array has an entry for each array element and associate key/value pair.');
+  equal(dataset[1].value, val2, 'Non-numeric array members are processed after indexed element.');
+  stuff = [];
+  stuff[indexKeyName] = val;
+  stuff.push(val2);
+  dataset = genData(stuff);
+  equal(dataset[1].value, val, 'Numeric members are processed like array indexed elements.');
 });
 
-test('functions', 2, function () {
-  var stuff = function () {},
-    dataset = genData(stuff);
-  equal(dataset.length, 1, 'The normalized function has the expected number of data objects.');
-  strictEqual(dataset[0].value, stuff, 'The first data object value is the function.');
-});
+module('Parser arguments');
 
-test('mixed object', 2, function () {
-  var potAryFnc = function () {},
-    potAry = [
-      'kettle',
-      potAryFnc
-    ],
-    stuff = {
-      foo: 'bar',
-      pot: potAry
-    },
-    dataset = genData(stuff);
-  equal(dataset.length, 5, 'The normalized mixed-object has the expected number of data objects.');
-  ok(!!function () {
-    var i = 0, cnt = 0,
-      ds = [{name: '', value: stuff}, {name:'foo', value:'bar'}, {name:'pot', value:potAry}, {name:'0', value:'kettle'}, {name:'1', value:potAryFnc}];
-    for (; i < dataset.length; i++) {
-      if (dataset[i].name === ds[i].name && dataset[i].value === ds[i].value) {
-        cnt++;
-      }
-    }
-    return cnt === dataset.length;
-  }, 'genData normalized the mixed-object into the expected dataset format.');
-});
-
-test('depth-first ordered tree', 1, function () {
-  var stuff = {
-      foo: {
-        bop: 10,
-        echo: {
-          lucky: 20,
-          happy: 30
-        },
-        code: [
-          40,
-          50
-        ]
+test('[0] name', 2, function () {
+  var
+    stuff = [1],
+    val = Math.random(),
+    origName,
+    dataset = genData(
+      stuff,
+      function (name, value, parent) {
+        if (parent) {
+          origName = name;
+          equal(this.name, name, 'The "name" argument matches data.name.');
+          this.name = val;
+        }
       },
-      loop: 60
-    },
-    dsOrder = [
-      '',
-      'foo',
-      'bop',
-      'echo',
-      'lucky',
-      'happy',
-      'code',
-      '0',
-      '1',
-      'loop'
-    ],
-    dsOrderTest = 0,
-    dataset = genData(stuff),
-    i = 0;
-  for (; i < dataset.length; i++) {
-    if (dataset[i].name === dsOrder[i]) {
-      dsOrderTest++;
-    }
-  }
-  equal(dsOrder.length, dsOrderTest, 'Each data object occurs in the expected order.');
-});
-
-module('Parsers');
-
-test('scope and signature', function () {
-  genData('anything', function (name, value, parent, dataset, flags) {
-    var args = arguments;
-    equal(this.constructor, genData, 'scope is a genData instance');
-    equal(args.length, 6, 'has expected number of arguments');
-    equal(typeof name, 'string', 'name is a string');
-    if (dataset.length) {
-      equal(typeof parent, 'object', 'parent is an object');
-      equal(parent.constructor, genData, 'parent is a genData instance');
-    } else {
-      ok(!parent, 'the first data object has no parent');
-    }
-    equal(typeof flags, 'object', 'flags is an object');
-    ok(flags.hasOwnProperty('omit'), 'omit flag is present');
-    ok(!flags.omit, 'omit flag is false by default');
-    ok(flags.hasOwnProperty('scan'), 'scan flag is present');
-    ok(flags.scan, 'scan flag is true by default');
-    ok(flags.hasOwnProperty('exit'), 'exit flag is present');
-    ok(!flags.exit, 'exit flag is false by default');
-  });
-});
-
-test('one function as second argument', function () {
-  genData('anything', function () {
-    ok(true, 'parser called');
-  });
-});
-
-test('an array of functions as second argument', function () {
-  genData(
-    'anything',
-    [
-      function () {
-        ok(true, 'first parser called');
-      },
-      function () {
-        ok(true, 'second parser called');
-      }
-    ]
-  );
-});
-
-test('add property', function () {
-  var propName = 'id',
-    dataset = genData('anything', function () {
-      this[propName] = Math.random();
-    }),
-    data = dataset[0];
-  ok(data.hasOwnProperty(propName), 'added property');
-  equal(typeof data[propName], 'number', 'property is a number');
-});
-
-test('remove properties', function () {
-  var dataset = genData([1,2,3], function () {
-    delete this.name;
-    delete this.value;
-  }),
-  i = 0, datasetCnt = dataset.length;
-  ok(datasetCnt, 'data objects were returned');
-  for (; i < datasetCnt; i++) {
-    ok(!dataset[i].hasOwnProperty('name'), 'the name property was removed');
-    ok(!dataset[i].hasOwnProperty('value'), 'the value property was removed');
-  }
-});
-
-test('preserving original value between parsers', function () {
-  var originalValue = 'foo';
-  genData(
-    originalValue,
-    [
-      function (name, value) {
-        equal(value, this.value, 'data.value matches the value parameter');
-        equal(value, originalValue, 'value matches the original value');
-        this.value = 'somethingelse';
-        notEqual(value, this.value, 'data.value has been changed');
-      },
-      function (name, value) {
-        equal(value, originalValue, 'value still matches the original value');
-        notEqual(value, this.value, 'data.value no longer matches the original value');
-      }
-    ]
-  );
-});
-
-test('preserving shared object between parsers and iterations', 5, function () {
-  var sharedSet = 0,
-    sharedRef,
-    parser = function (name, value, parent, dataset, flags, shared) {
-      if (!sharedSet) {
-        sharedSet = 1;
-        ok(typeof shared === 'object', 'shared argument is an object');
-        shared.idx = 0;
-        sharedRef = shared;
-      } else {
-        shared.idx++;
-        ok(shared === sharedRef, 'shared object is the same');
-      }
-    };
-  genData(
-    [1],
-    [
-      parser,
-      parser
-    ]
-  );
-  equal(sharedRef.idx, 3, 'parsers see same shared object between iterations');
-});
-
-test('flags.parent', function () {
-  var passParentFnc = function (name, value, parent, dataset, flags) {
-      this.parent = parent;
-      flags.parent = parent;
-    },
-    sampleData = [[1]],
-    simpleSet = genData(sampleData, passParentFnc),
-    genChain = new genData(passParentFnc),
-    chainSet = genChain(sampleData),
-    model = function () {},
-    modelSet = genData(sampleData, passParentFnc, model),
-    failSetFalsy = genData(sampleData, function (name, value, parent, dataset, flags) {
-      this.parent = parent;
-      flags.parent = 0;
-    }),
-    failSetTruthy = genData(sampleData, function (name, value, parent, dataset, flags) {
-      this.parent = parent;
-      flags.parent = 1;
-    }),
-    failSetObject = genData(sampleData, function (name, value, parent, dataset, flags) {
-      this.parent = parent;
-      flags.parent = {};
-    });
-
-  equal(simpleSet[1].parent, simpleSet.pop().parent, 'parent change works');
-  equal(chainSet[1].parent, chainSet.pop().parent, 'parent may be instanceof genData');
-  equal(modelSet[1].parent, modelSet.pop().parent, 'parent may be the substituted model');
-  notEqual(failSetFalsy[1].parent, failSetFalsy.pop().parent, 'flags.parent can not be falsy');
-  notEqual(failSetTruthy[1].parent, failSetTruthy.pop().parent, 'flags.parent can not be truthy');
-  notEqual(failSetObject[1].parent, failSetObject.pop().parent, 'flags.parent can not be any object');
-});
-
-test('flags.omit', function () {
-  var dataset = genData([1,2,3], function (name, value, parent, dataset, flags) {
-      flags.omit = 1;
-      if (parent) {
-        ok(parent.hasOwnProperty('_OMIT'), 'omitted data objects are flagged');
-        strictEqual(parent._OMIT, true, 'the _OMIT flag is true');
-      }
-    });
-  equal(dataset.length, 0, 'dataset has no data objects');
-});
-
-test('flags.scan', function () {
-  var stuff = [1,2,3],
-    dataset = genData(stuff, function (name, value, parent, dataset, flags) {
-      flags.scan = 0;
-    });
-  equal(dataset[0].value, stuff, 'first data object has an enumerable value')
-  equal(dataset.length, 1, 'member properties were not scanned');
-});
-
-test('flags.exit', function () {
-  var tic = 0;
-  genData(1,
-    [
-      function (name, value, parent, dataset, flags) {
-        flags.exit = 1;
-      },
-      function () {
-        tic = 1;
-      }
-    ]
-  ),
-  stuff = [1,2,3],
-  dataset = genData(stuff),
-  exitSet = genData(stuff, function (name, value, parent, dataset, flags) {
-    flags.exit = 1;
-  });
-  ok(!tic, 'second parser was skipped');
-  equal(1, exitSet.length, 'only one data object was created');
-  notEqual(dataset.length, exitSet, 'exit flag reduced the number of data objects created');
-});
-
-test('alter the dataset', function () {
-  var stuff = 1,
-    fauxValues = ['hello', 'world'],
-    dataset = genData(stuff,
-      function (name, value, parent, dataset, flags) {
-        flags.omit = 1;
-        dataset.splice(0, dataset.length, 'hello', 'world');
+      function (name, value, parent) {
+        if (parent) {
+          equal(origName, name, 'Changing data.name with one parser doesn\'t change the name argument value.');
+        }
       }
     );
-  notEqual(typeof stuff, 'object', 'the parsed value has no enumerable members');
-  deepEqual(dataset, fauxValues, 'final dataset has been augmented');
+});
+
+test('[1] value', 2, function () {
+  var
+    stuff = 'anything',
+    val = Math.random(),
+    orig,
+    dataset = genData(
+      stuff,
+      function (name, value, parent) {
+        orig = value;
+        equal(this.value, value, 'The "value" argument matches data.value.');
+        this.value = val;
+      },
+      function (name, value, parent) {
+          equal(orig, value, 'Changing data.value with one parser doesn\'t change the name argument value.');
+      }
+    );
+});
+
+test('[2] parent', 5, function () {
+  var
+    stuff = [1],
+    callCnt = 0,
+    dataset = genData(
+      stuff,
+      function (name, value, parent) {
+        if (callCnt++) {
+          ok(parent, 'The "parent" argument is present after the first call.');
+          ok(parent instanceof genData, 'The "parent" argument is a data instance.');
+          equal(typeof parent, 'object', 'The "value" member of the "parent" is an object.');
+          ok(parent.value.hasOwnProperty(name), 'The "name" argument is a member of the parent.value.');
+        } else {
+          strictEqual(parent, undefined, 'The "parent" argument is undefined, on the first parser invocation.');
+        }
+      }
+    );
+});
+
+test('[3] dataset', 2, function () {
+  var
+    stuff = 'anything',
+    datasetParam,
+    dataset = genData(
+      stuff,
+      function (name, value, parent, dataset) {
+        datasetParam = dataset;
+        ok(dataset instanceof Array, 'The "dataset" argument is an array.');
+      }
+    );
+    strictEqual(datasetParam, dataset, 'The "dataset" argument is the array returned by genData.');
+});
+
+test('[4] flags', 10, function () {
+  var
+    stuff = [1],
+    flagsParam,
+    iteration = 0;
+  genData(
+    stuff,
+    function (name, value, parent, dataset, flags) {
+      if (iteration++) {
+        ok(flagsParam !== flags, 'The "flags" argument is unique per iteration.');
+      } else {
+        flagsParam = flags;
+        equal(typeof flags, 'object', 'The "flags" argument is an object.');
+        'parent|0,omit|0,scan|1,exit|0'.split(',').forEach(function (flagSet) {
+          var
+            flag = flagSet.split('|')[0],
+            defVal = flagSet.split('|')[1];
+          ok(flags.hasOwnProperty(flag), 'The parser flag "' + flag + '" exists.');
+          equal(defVal, flags[flag], 'The default ' + flag + ' value is "' + defVal + '".');
+        });
+      }
+    }
+  );
+});
+
+test('[5] shared', 3, function () {
+  var
+    iteration = 0,
+    stuff = [1],
+    sharedParam;
+  genData(
+    stuff,
+    function (name, value, parent, dataset, flags, shared) {
+      if (iteration++) {
+        strictEqual(sharedParam, shared, 'The same object is passed, between iterations, as the "shared" argument.');
+      } else {
+        sharedParam = shared;
+        equal(typeof shared, 'object', 'The "shared" argument is an object.');
+        equal(
+          (function () {
+            var
+              keyCnt = 0,
+              prop;
+            for (prop in shared) {
+              if (shared.hasOwnProperty(prop)) {
+                keyCnt++;
+              }
+            }
+            return keyCnt;
+          })(),
+          0,
+          'The "shared" argument has no keys.'
+        );
+      }
+    }
+  );
+});
+
+module('Parser flags');
+
+test('parent', 2, function () {
+  var
+    simple = 'anything',
+    complex = [1,2],
+    dataSimple = genData(simple),
+    dataComplex = genData(complex),
+    dataFauxComplex = genData(
+      simple,
+      function (name, value, parent, dataset, flags) {
+        if (!parent) {
+          flags.parent = complex;
+        }
+      }
+    );
+  ok(
+    [1, 0, '', 'foo bar', true, false].every(function (val) {
+      return JSON.stringify(dataSimple) === JSON.stringify(genData(simple, function (name, value, parent, dataset, flags) {flags.parent = val}));
+    }),
+    'Setting the parent flag to scalar (non-object) values has no effect.'
+  );
+  equal(
+    JSON.stringify(dataComplex.slice(1)),
+    JSON.stringify(dataFauxComplex.slice(1)),
+    'Setting the parent flag to an object, allows it\'s members to be processed.'
+  );
+});
+
+test('omit', 4, function () {
+  var
+    stuff = [Math.random()],
+    iteration = 0,
+    dataOmit,
+    dataset = genData(stuff),
+    datasetOmit = genData(
+      stuff,
+      function (name, value, parent, dataset, flags) {
+        if (!iteration++) {
+          flags.omit = 1;
+          dataOmit = this;
+          ok(!dataOmit.hasOwnProperty('_OMIT'), 'Within the same iteration, the omit flag does not impact the data object.');
+        }
+      }
+    );
+  notEqual(dataset.length, datasetOmit.length, 'Reduces the number of dataset entries.');
+  ok(dataOmit.hasOwnProperty('_OMIT') && dataOmit._OMIT === true, 'Omitted data objects have an "_OMIT" member, set to true.');
+  equal(dataset[1].value, datasetOmit[0].value, 'Descendent members of omitted data objects are still processed.');
+});
+
+test('scan', 4, function () {
+  var
+    stuff = [Math.random()],
+    iteration = 0,
+    dataSkip,
+    dataset = genData(stuff),
+    datasetSkipped = genData(
+      stuff,
+      function (name, value, parent, dataset, flags) {
+        flags.scan = 0;
+        dataSkip = this;
+        ok(1, 'Within the same iteration, the scan flag does not impact the data object.');
+      }
+    );
+  notEqual(dataset.length, datasetSkipped.length, 'Reduces the number of dataset entries.');
+  equal(datasetSkipped.indexOf(dataSkip), 0, 'Unscanned data is still included in the dataset.');
+  equal(dataset.length, datasetSkipped.length + 1, 'Descendent members of unscanned data objects are not processed.');
+});
+
+test('exit', 5, function () {
+  var
+    stuff = [1],
+    tick = 0,
+    dataExit,
+    dataset = genData(stuff),
+    datasetExit = genData(
+      stuff,
+      function (name, value, parent, dataset, flags) {
+        flags.exit = 1;
+        dataExit = this;
+        ok(1, 'Within the same iteration, the exit flag does not impact the data object.');
+      },
+      function () {
+        tick++;
+      }
+    );
+  notEqual(dataset.length, datasetExit.length, 'Reduces the number of dataset entries.');
+  ok(!tick, 'Subsequent parser functions are skipped.');
+  equal(datasetExit.indexOf(dataExit), 0, 'Exited data is still included in the dataset.');
+  equal(dataset.length, datasetExit.length + 1, 'No other members are processed.');
 });
 
 module('Generator');
 
-test('spawning', 7, function () {
-  var tic = 0,
-    parser = function () {
-      ok(1, 'parser passed from generator to genData');
-    },
-    gen = new genData(parser),
-    tmp = genData,
-    dataset;
-  ok(typeof gen === 'function', 'returns a function');
-  genData = function () {
-    tic = 1;
-  };
-  dataset = gen(1); // should fire assertion in parser()
-  equal(tic, 0 , 'generator is a closured call');
-  genData = tmp;
-  gen(1, parser);
-  gen(1, [parser]);
-});
-
-test('signature', 5, function () {
-  var val = 8,
-    fnc = function () {
-      this.id = val;
-    },
-    genX = new genData(fnc),
-    model = function () {},
-    genXY = new genX(fnc),
-    genXYZ = new genX(fnc, fnc);
-  equal('function', typeof genXY, 'can spawn generator passing one parser');
-  equal('function', typeof genXYZ, 'can spawn generator passing more parsers');
-  equal(val, genX(1, fnc)[0].id, 'accepts a single parser');
-  equal(val, genX(1, [fnc, fnc])[0].id, 'accepts an array of parsers');
-  ok(genX(1, [], model)[0] instanceof model, 'accepts a base model');
-});
-
-test('compounding', function () {
-  var strStart = 'foo',
-    strEnd = strStart.toUpperCase(),
-    idF = function () {
-      this.id = strStart;
-    },
-    upperF = function () {
-      this.id = this.id.toUpperCase();
-    },
-    genId = new genData(idF),
-    genUpper = new genId(upperF),
-    dataCompound = genUpper(1)[0],
-    dataManual = genData(
-      1,
-      [
-        idF,
-        upperF
-      ]
-    )[0];
-  equal(strEnd, dataCompound.id, 'the second generator added to the the first');
-  equal(strEnd, dataManual.id, 'manual result matches compound generator');
-});
-
-module('Prototype');
-
-test('chaining', function () {
-  var emptyFnc = function () {},
-    genAnimal = new genData(emptyFnc),
-    genDog = new genAnimal(emptyFnc),
-    genFruit = new genData(emptyFnc),
-    dog = genDog(1)[0],
-    fruit = genFruit(1)[0];
-  ok(dog instanceof genAnimal, 'dog comes from animal generator');
-  ok(dog instanceof genDog, 'dog comes from dog generator');
-  ok(dog instanceof genData, 'dog comes from genData');
-  ok(fruit instanceof genFruit, 'fruit comes from fruit generator');
-  ok(fruit instanceof genData, 'fruit comes from genData');
-});
-
-test('methods', function () {
-  var stuff = {foo:'bar'},
-    gen = new genData(function () {}),
-    dataset = gen(stuff);
-  ok(typeof dataset[0].getValue === 'undefined', 'no getValue method present');
-  genData.prototype.getValue = function () {
-    ok(this instanceof genData, 'scope is a genData instance');
-    return this.value;
-  };
-  ok(typeof dataset[0].getValue === 'function', 'getValue method exists now');
-  ok(typeof dataset[0].toUpperCase === 'undefined', 'no spawned method present');
-  gen.prototype.toUpperCase = function () {
-    ok(this instanceof gen, 'scope is a gen instance');
-    return this.getValue().toUpperCase();
-  };
-  ok(typeof dataset[0].toUpperCase === 'function', 'spawned method exists now');
-  strictEqual(stuff, dataset[0].getValue(), 'genData prototyped method works');
-  strictEqual(stuff.foo.toUpperCase(), dataset[1].toUpperCase(), 'generator prototyped method sees chained methods');
-  // clean up!
-  delete genData.prototype.getValue;
-  ok(typeof dataset[0].getValue === 'undefined', 'removed prototyped method from genData');
-});
-
-test('substitute base models', function () {
-  var tic = 0,
-    emptyFnc = function () {},
-    parser = function () {
-      tic++;
-    },
-    myModel = function () {},
-    dataModel = genData(1, [parser], myModel),
-    gen = new genData(parser),
-    dataGen = gen(1,[parser], myModel),
-    finalTic = 3;
-  myModel.prototype.getValue = function () {
-    ok(this instanceof myModel, 'scope is an instance of the substitute constructor');
-    return this.value;
-  };
-  gen.prototype.hidden = emptyFnc;
-  ok(dataModel[0] instanceof myModel, 'can use prototype of a given constructor');
-  ok(!(dataModel[0] instanceof genData), 'substitution kills link to genData');
-  ok(dataGen[0] instanceof myModel, 'generators support prototype substitution');
-  ok(!(dataGen[0] instanceof genData), 'generator substitutions also kill link to genData');
-  ok(typeof dataModel[0].getValue === 'function', 'substitute prototype methods are accessible');
-  ok(typeof dataGen[0].hidden === 'undefined', 'generator and genData methods not available with custom prototypes');
-  equal(1, dataModel[0].getValue(), 'substitute prototype methods work');
-  equal(finalTic, tic, 'Parsers fire during prototype substitution');
-});
-
-test('with an object instead of a constructor', function () {
+test('scope injection', 5, function () {
   var
-    protoObj = {
-      getValue: function () {
-        return this.value;
-      }
+    stuff = 'anything',
+    tick = 0,
+    genSpawn = genData.spawn(),
+    genSubSpawn;
+
+  ok(
+    [0, 1, [], {}, true, false, /a/].every(function (scope) {
+      return genData.call(scope, stuff)[0] instanceof genData && genSpawn.call(scope, stuff)[0] instanceof genSpawn;
+    }),
+    'Invoking genData/generators with a non-function scope has no effect.'
+  );
+  ok(genData.call(substituteScope, stuff)[0] instanceof substituteScope, 'Invoking genData with a function scope, makes the data instances of the injected scope.');
+  ok(genSpawn.call(substituteScope, stuff)[0] instanceof substituteScope, 'Invoking generators with a function scope, makes the data instances of the injected scope.');
+
+  genData.spawn.call(substituteSpawnScope);
+  genSubSpawn = genSpawn.spawn.call(substituteGeneratorSpawnScope);
+
+  equal(tick, 2, 'Substituting the scope of .spawn() with a function, invokes that function with the `new` statement.');
+  equal(genSubSpawn(stuff), undefined, 'Invoking a generator spawned with a substitute function scope, invokes that function instead of genData, and does not return a dataset.');
+
+  function substituteSpawnScope() { 
+    if (this instanceof substituteSpawnScope) {
+      tick++;
     }
-    , stuff = {
-      first: 'value'
-      , second: 'bar'
+  }
+  function substituteGeneratorSpawnScope() {
+    if (this instanceof substituteGeneratorSpawnScope) {
+      tick++;
     }
-    , genFoo = new genData(protoObj, [])
-    , fooSet = genFoo(stuff).slice(1)
-  ;
-  protoObj.getName = function () {
-    return this.name;
-  };
-  equal(typeof fooSet[0].getValue, 'function', 'Methods of the object protoype are available in the data instance prototype.');
-  equal(typeof fooSet[0].getName, 'function', 'Methods added to the prototype are added to data instances.');
-  equal(fooSet[0].getValue(), stuff.first, 'Methods from an object prototype are scoped to the given data instance.');
-  equal(typeof genData(stuff, [], protoObj)[0].getName, 'function', 'Works when passing an object prototype directly to genData.');
+  }
+  function substituteScope() {}
 });
