@@ -42,6 +42,8 @@
     , sharedVars = {}
     // parser flags per loop iteration
     , parserFlags
+    // parser arguments
+    , parserArgs
     // collection of parser functions, starting with all arguments...
     , parsers = [].slice.call(arguments)
       // ... except the first
@@ -86,7 +88,7 @@
       , parent: 0
     };
     // define parser arguments
-    args = [
+    parserArgs = [
       // the orginal name
       item[0]
       // the original value
@@ -103,7 +105,7 @@
     // while there are parsers to process this data and the exit flag allows...
     while (parserIdx < totalParsers && !parserFlags.exit) {
       // invoke each parser with the data object as it's scope, and the predefined arguments
-      parsers[parserIdx++].apply(data, args);
+      parsers[parserIdx++].apply(data, parserArgs);
     }
     // if omitting this data object...
     if (parserFlags.omit) {
