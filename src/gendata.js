@@ -32,8 +32,6 @@
     ]
     // the object to be scanned in order to add items to the queue
     , nextObj
-    // flag when the "parent" value should be the next scanned object
-    , useParentFlagForNextObject
     // a buffered collection of queue item
     , queueBuffer
     // an item from the queued
@@ -85,7 +83,7 @@
       , exit: 0
       // placeholder for an object that genData should use as the parent for the next
       // in place of it's default instructs genData to use the data object as the parent, by default
-      , parent: 0
+      , parent: null
     };
     // define parser arguments
     parserArgs = [
@@ -122,10 +120,8 @@
     } else { // (otherwise) when not exiting the queue-processing loop...
       // reset the queueBuffer
       queueBuffer = [];
-      // flag whether to use the parent object
-      useParentFlagForNextObject = typeof parserFlags.parent === 'object';
       // resolve what object will be considered the parent object (for the next parser function)
-      nextObj = useParentFlagForNextObject ? parserFlags.parent : data.value;
+      nextObj = parserFlags.parent !== null ? parserFlags.parent : data.value;
       // if allowed to scan the next object...
       if (parserFlags.scan && typeof nextObj === 'object') {
         // with each member of the object...
@@ -139,7 +135,7 @@
               // the _value_ argument for a new Data object
               , nextObj[propertyName]
               // the parent argument passed to parsers
-              , useParentFlagForNextObject ? nextObj : data
+              , data
             ]);
           }
         }

@@ -265,13 +265,15 @@ test('[4] flags', 10, function () {
       } else {
         flagsParam = flags;
         equal(typeof flags, 'object', 'The "flags" argument is an object.');
-        'parent|0,omit|0,scan|1,exit|0'.split(',').forEach(function (flagSet) {
+        'omit|0,scan|1,exit|0'.split(',').forEach(function (flagSet) {
           var
             flag = flagSet.split('|')[0],
             defVal = flagSet.split('|')[1];
           ok(flags.hasOwnProperty(flag), 'The parser flag "' + flag + '" exists.');
           equal(defVal, flags[flag], 'The default ' + flag + ' value is "' + defVal + '".');
         });
+        ok(flags.hasOwnProperty('parent'), 'The parser flag "parent" exists.');
+        strictEqual(flags.parent, null, 'The default parser value is null');
       }
     }
   );
@@ -312,7 +314,7 @@ test('[5] shared', 3, function () {
 
 module('Parser flags');
 
-test('parent', 2, function () {
+test('parent', 3, function () {
   var
     simple = 'anything',
     complex = [1,2],
@@ -336,6 +338,16 @@ test('parent', 2, function () {
     JSON.stringify(dataComplex.slice(1)),
     JSON.stringify(dataFauxComplex.slice(1)),
     'Setting the parent flag to an object, allows it\'s members to be processed.'
+  );
+  genData(
+    simple,
+    function (name, value, parent, dataset, flags) {
+      if (!parent) {
+        flags.parent = {any:'value'};
+      } else {
+        ok(parent instanceof genData, 'Even when substituted via flags.parent, the parent argument is always an instance of genData.');
+      }
+    }
   );
 });
 
