@@ -2,8 +2,8 @@
 
 A normalization pattern to build, query, and manipulate everything.
 
-(5/22/12)
-version 2.0.0
+(6/30/12)
+version 2.0.1
 by Bemi Faison
 
 ## DESCRIPTION
