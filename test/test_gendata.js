@@ -462,9 +462,9 @@ test('scope injection', 5, function () {
   function substituteScope() {}
 });
 
-module('Loading');
+module('AMD');
 
-test('AMD', 5, function () {
+test('requirejs', 5, function () {
   var script = document.createElement('script');
 
   script.onload = function () {
@@ -483,6 +483,7 @@ test('AMD', 5, function () {
     function finalize() {
       if (tick++) {
         ok(genDataMinified !== genDataAMD, 'The AMD loaded minified and source versions are unique.');
+        define = requirejs = require = undefined;
         start();
       }
     }
@@ -502,6 +503,49 @@ test('AMD', 5, function () {
     });
   };
   script.setAttribute('src', 'requirejs/require.js');
+  document.body.appendChild(script);
+  stop();
+});
+
+test('curl', 5, function () {
+  var script = document.createElement('script');
+
+  script.onload = function () {
+    var
+      genDataMinified,
+      genDataAMD,
+      tick = 0
+    ;
+    curl({  
+      baseUrl: '..',
+      paths: {
+        genData: 'gendata-min'
+      }
+    });
+
+    function finalize() {
+      if (tick++) {
+        ok(genDataMinified !== genDataAMD, 'The AMD loaded minified and source versions are unique.');
+        curl = define = requirejs = require = undefined;
+        start();
+      }
+    }
+
+    curl(['src/gendata'], function (curlGD) {
+      genDataAMD = curlGD;
+      ok(typeof curlGD == 'function', 'The source file loads via AMD.');
+      ok(curlGD !== genData && typeof curlGD.spawn === 'function', 'The source AMD version is distinct from the window instance.');
+      finalize();
+    });
+
+    curl(['genData'], function (curlGD) {
+      genDataMinified = curlGD;
+      ok(typeof curlGD == 'function', 'The minified version loads via AMD, using the "genData" dependency alias.');
+      ok(curlGD !== genData && typeof curlGD.spawn === 'function', 'The AMD minified version is distinct from the window instance.');
+      finalize();
+    });
+  };
+  script.setAttribute('src', 'curl/src/curl.js');
   document.body.appendChild(script);
   stop();
 });

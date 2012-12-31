@@ -4,3 +4,6 @@
 [submodule "test/requirejs"]
 	path = test/requirejs
 	url = https://github.com/jrburke/requirejs.git
+[submodule "test/curl"]
+	path = test/curl
+	url = https://github.com/cujojs/curl.git
