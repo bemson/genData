@@ -461,3 +461,47 @@ test('scope injection', 5, function () {
   }
   function substituteScope() {}
 });
+
+module('Loading');
+
+test('AMD', 5, function () {
+  var script = document.createElement('script');
+
+  script.onload = function () {
+    var
+      genDataMinified,
+      genDataAMD,
+      tick = 0,
+      rjs = requirejs.config({
+        baseUrl: '..',
+        paths: {
+          genData: 'gendata-min'
+        }
+      })
+    ;
+
+    function finalize() {
+      if (tick++) {
+        ok(genDataMinified !== genDataAMD, 'The AMD loaded minified and source versions are unique.');
+        start();
+      }
+    }
+
+    rjs(['src/gendata'], function (rjsGD) {
+      genDataAMD = rjsGD;
+      ok(typeof rjsGD == 'function', 'The source file loads via AMD.');
+      ok(rjsGD !== genData && typeof rjsGD.spawn === 'function', 'The source AMD version is distinct from the window instance.');
+      finalize();
+    });
+
+    rjs(['genData'], function (rjsGD) {
+      genDataMinified = rjsGD;
+      ok(typeof rjsGD == 'function', 'The minified version loads via AMD, using the "genData" dependency alias.');
+      ok(rjsGD !== genData && typeof rjsGD.spawn === 'function', 'The AMD minified version is distinct from the window instance.');
+      finalize();
+    });
+  };
+  script.setAttribute('src', 'requirejs/require.js');
+  document.body.appendChild(script);
+  stop();
+});
