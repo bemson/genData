@@ -7,7 +7,7 @@ describe( 'iteration flag "continues"', function () {
     spy.firstCall.args[3].continues.should.not.be.ok;
   });
 
-  it( 'should stop invoking continues, when falsy', function () {
+  it( 'should stop invoking continues, when truthy', function () {
     var
       spyA = sinon.spy(),
       spyB = sinon.spy()

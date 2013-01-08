@@ -1,6 +1,6 @@
 describe( 'iteration flag "source"', function () {
 
-  it( 'should be equal to this.value and value argument', function () {
+  it( 'should be equal to this.value and the second callback argument', function () {
     var
       arg = {},
       spy = sinon.spy()
