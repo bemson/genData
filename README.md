@@ -1,8 +1,8 @@
 # genData
 
-[![Build Status](https://travis-ci.org/bemson/genData.png)](https://travis-ci.org/bemson/genData)
-
 An iteration utility with a rich callback environment.
+
+[![Build Status](https://travis-ci.org/bemson/genData.png)](https://travis-ci.org/bemson/genData)
 
 (1/8/13)
 version 3.0.0
@@ -60,7 +60,7 @@ Callbacks receive four arguments per iterated value:
 ### Iteration Flags
 
 
-#### flags._allowUndefined_
+#### flags.allowUndefined
 
 Set this flag to a truthy value, if you want genData to capture the result of callbacks that return `undefined` (which includes callbacks with no `return` statement). This flag is reset to 0 before executing each callback. Below, a callback allows undefined values, which are then captured in the returned array.
 
@@ -78,7 +78,7 @@ genData(
 ```
 
 
-#### flags._args_
+#### flags.args
 
 A simple array of non-function values passed to genData, _after_ the first parameter (the value to iterate). Below, callbacks use arguments to build the array results.
 
@@ -97,7 +97,7 @@ genData(
 ```
 
 
-#### flags._breaks_
+#### flags.breaks
 
 Similar to the JavaScript `break` statement, genData will abort processing it's queue when this flag is truthy. This flag persists between callbacks, but is reset (to 0) at the beginning of each iteration. Below, a callback tells genData to stop and return the first number found.
 
@@ -115,7 +115,7 @@ genData(
 ```
 
 
-#### flags._continues_
+#### flags.continues
 
 Similar to the JavaScript `continue` statement, set this flag to a truthy value when you want to end the current iteration and begin the next one. Below, a callback uses this flag to avoid runtime errors.
 
@@ -134,15 +134,15 @@ genData(
 // ['1','3']
 ```
 
-#### flags._loop_
+#### flags.loop
 
 This is a number, reflecting genData's iteration count. The value is 0 initially and increments per iteration.
 
-#### flags._queued_
+#### flags.queued
 
 This is a number, reflecting genData's queue of pending iterations. Because genData adds to the queue after each iteration, a value of 0 does not mean the end of genData's process.
 
-#### flags._returns_
+#### flags.returns
 
 This flag is an array by default, and is what genData returns. This flag persists between callbacks, until genData completes processing a given value. Note that genData will ignore returned callback values, when this flag is not an Array. Below, demonstrates how this flag can change genData's return value.
 
@@ -161,7 +161,7 @@ genData(
 // 'echo'
 ```
 
-#### flags._source_
+#### flags.source
 
 This value is scanned by genData (at the end of every iteration), in order to add more non-inherited members to genData's queue. By default, this flag reflects the second argument of the callback signature, or the `value` property of the callback scope. Below, this flag is used to make a non-object value iterable.
 
@@ -184,7 +184,7 @@ genData(
 ```
 
 
-### Spawning Generators
+### Spawning genData Generators
 
 The static `.spawn()` method expands upon the concept of currying functions, by also extending genData's prototype chain. Functions _spawned_ by genData are called "generators", which also host the `.spawn()` method for further spawning. Below, two generators are spawned, in order to preserve callback configurations and isolate additions to genData's prototype.
 
@@ -221,7 +221,7 @@ calc(,
 // [100]
 ```
 
-Finally, while spawning does allow you to curry values to the iteration flag "args", this practice is not recommended.
+Note: While spawning does allow you to curry values to the iteration flag "args", this practice is not recommended.
 
 ## Installation
 
