@@ -1,13 +1,13 @@
-describe( 'iteration flag "callbacks"', function () {
+describe( 'iteration flag "continues"', function () {
 
-  it( 'should be truthy', function () {
+  it( 'should be falsy', function () {
     var spy = sinon.spy();
 
     genData(1, spy);
-    spy.firstCall.args[3].callbacks.should.be.ok;
+    spy.firstCall.args[3].continues.should.not.be.ok;
   });
 
-  it( 'should stop invoking callbacks, when falsy', function () {
+  it( 'should stop invoking continues, when falsy', function () {
     var
       spyA = sinon.spy(),
       spyB = sinon.spy()
@@ -16,7 +16,7 @@ describe( 'iteration flag "callbacks"', function () {
     genData(1,
       spyA,
       function (n,v,p, iterationFlags) {
-        iterationFlags.callbacks = 0;
+        iterationFlags.continues = 1;
       },
       spyB
     );

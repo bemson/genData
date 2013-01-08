@@ -89,12 +89,12 @@
         ];
 
         // init loop environment iteration flags
-        loopEnv.callbacks = 1;
+        loopEnv.continues = 0;
         loopEnv.breaks = 0;
         loopEnv.source = queueItem[1];
 
-        // while there are parsers to process this data and the exit flag allows...
-        while (loopEnv.callbacks && callbackIdx < totalCallbacks) {
+        // while there are parsers to process this data and the continues flag allows...
+        while (!loopEnv.continues && callbackIdx < totalCallbacks) {
           loopEnv.allowUndefined = 0;
           callbackResult = callbacks[callbackIdx++].apply(callbackScope, callbackArgs);
           if (callbackResult !== undefined || loopEnv.allowUndefined) {

@@ -62,7 +62,7 @@ describe( 'callback signature', function () {
         .and.have.keys(
           'returns',
           'args',
-          'callbacks',
+          'continues',
           'breaks',
           'source',
           'allowUndefined',
@@ -74,7 +74,7 @@ describe( 'callback signature', function () {
         .and.have.keys(
           'returns',
           'args',
-          'callbacks',
+          'continues',
           'breaks',
           'source',
           'allowUndefined',
