@@ -1,5 +1,5 @@
 /*!
- * genData v3.0.1
+ * genData v3.1.0
  * https://github.com/bemson/genData
  *
  * Copyright 2012, Bemi Faison
@@ -165,7 +165,7 @@
       return spawnedFunction;
     };
 
-    genData.version = '3.0.1';
+    genData.version = '3.1.0';
 
     return genData;
   }
