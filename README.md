@@ -138,6 +138,32 @@ genData(
 
 This is a number, reflecting genData's iteration count. The value is 0 initially and increments per iteration.
 
+#### flags.params
+
+A simple array of what was passed to genData. Mutating this array has no impact on genData's iteration or other flags. Below, demonstrates how to use this flag, along with `flag.continues`, in order to custom invoke functions that genData would otherwise assume a callback.
+
+```js
+function logger(text) {
+  console.log(text);
+}
+
+genData(
+  ['hello', 'world!'],
+  function (name, value, parent, flags) {
+    flags.continues = 1;
+    if (typeof value === 'string') {
+      flags.params[2](value);
+    }
+  },
+  logger
+);
+
+// (console output)
+// hello
+// world!
+
+```
+
 #### flags.queued
 
 This is a number, reflecting genData's queue of pending iterations. Because genData adds to the queue after each iteration, a value of 0 does not mean the end of genData's process.
