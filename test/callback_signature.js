@@ -65,6 +65,7 @@ describe( 'callback signature', function () {
           'continues',
           'breaks',
           'source',
+          'params',
           'allowUndefined',
           'loop',
           'queued'
@@ -77,6 +78,7 @@ describe( 'callback signature', function () {
           'continues',
           'breaks',
           'source',
+          'params',
           'allowUndefined',
           'loop',
           'queued'

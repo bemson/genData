@@ -1,5 +1,5 @@
 /*!
- * genData v3.0.0
+ * genData v3.0.1
  * https://github.com/bemson/genData
  *
  * Copyright 2012, Bemi Faison
@@ -40,10 +40,11 @@
         ],
         queueBuffer,
         queueItem,
-        invocationArgs = protoSliceMethod.call(arguments).slice(1),
+        invocationArgs = protoSliceMethod.call(arguments),
+        mainArgs = invocationArgs.slice(1),
         loopEnv,
         finalCallbackReturnValue,
-        callbacks = invocationArgs.filter(filterFunctions),
+        callbacks = mainArgs.filter(filterFunctions),
         callbackResult,
         callbackArgs,
         callbackScope,
@@ -69,7 +70,8 @@
       // init loop environment
       loopEnv = {
         returns: resultsArray,
-        args: invocationArgs.filter(filterNonFunctions),
+        args: mainArgs.filter(filterNonFunctions),
+        params: invocationArgs,
         loop: 0,
         queued: 0
       };
@@ -163,7 +165,7 @@
       return spawnedFunction;
     };
 
-    genData.version = '3.0.0';
+    genData.version = '3.0.1';
 
     return genData;
   }
