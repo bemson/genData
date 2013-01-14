@@ -291,7 +291,7 @@ If you include genData directly in a web page - via the `<script>` tag - it will
 ```
 
 
-## FILES
+## Files
 
   * gendata-min.js - genData source file (minified with [UglifyJS](http://marijnhaverbeke.nl/uglifyjs))
   * LICENSE - The legal terms and conditions under which this software may be used
@@ -300,7 +300,7 @@ If you include genData directly in a web page - via the `<script>` tag - it will
   * test/ - Directory containing test files written in the [Mocha](http://visionmedia.github.com/mocha/) framework
 
 
-## LICENSE
+## License
 
 genData is available under the terms of the [MIT-License](http://en.wikipedia.org/wiki/MIT_License#License_terms).
 
