@@ -39,6 +39,9 @@
           ]
         ],
         queueBuffer,
+        sourceKeys,
+        sourceKeysLength,
+        sourceKeysIndex,
         queueItem,
         invocationArgs = protoSliceMethod.call(arguments),
         mainArgs = invocationArgs.slice(1),
@@ -49,7 +52,6 @@
         callbackArgs,
         callbackScope,
         callbackIdx,
-        sourceKey,
         hasFinalReturnValue,
         resultsArray = [],
         totalCallbacks = callbacks.length
@@ -116,16 +118,16 @@
         }
 
         // add source members to the queue
-        if (typeof loopEnv.source === 'object') {
+        if (loopEnv.source && typeof loopEnv.source === 'object') {
           queueBuffer = [];
-          for (sourceKey in loopEnv.source) {
-            if (loopEnv.source.hasOwnProperty(sourceKey)) {
-              queueBuffer.push([
-                sourceKey,
-                loopEnv.source[sourceKey],
-                callbackScope
-              ]);
-            }
+          sourceKeys = Object.keys(loopEnv.source);
+          sourceKeysLength = sourceKeys.length;
+          for (sourceKeysIndex = 0; sourceKeysIndex < sourceKeysLength; sourceKeysIndex++) {
+            queueBuffer[sourceKeysIndex] = [
+              sourceKeys[sourceKeysIndex],
+              loopEnv.source[sourceKeys[sourceKeysIndex]],
+              callbackScope
+            ];
           }
           queue = queueBuffer.concat(queue);
         }
