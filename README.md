@@ -5,7 +5,7 @@ An iteration utility with a rich callback environment.
 [![Build Status](https://travis-ci.org/bemson/genData.png)](https://travis-ci.org/bemson/genData)
 
 (1/10/13)
-version 3.1.0
+version 3.1.1
 by Bemi Faison
 
 ## Usage

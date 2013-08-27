@@ -1,8 +1,8 @@
 {
   "name": "genData",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "A normalization pattern to build, query, and manipulate everything.",
-  "homepage": "github.com/bemson/genData",
+  "homepage": "https://github.com/bemson/genData",
   "main": "src/gendata.js",
   "scripts": {
     "test": "node_modules/.bin/mocha"

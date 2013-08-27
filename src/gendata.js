@@ -1,5 +1,5 @@
 /*!
- * genData v3.1.0
+ * genData v3.1.1
  * https://github.com/bemson/genData
  *
  * Copyright 2012, Bemi Faison
