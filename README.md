@@ -293,7 +293,7 @@ If you include genData directly in a web page - via the `<script>` tag - it will
 
 ## Files
 
-  * gendata-min.js - genData source file (minified with [UglifyJS](http://marijnhaverbeke.nl/uglifyjs))
+  * gendata.min.js - genData source file (minified with [UglifyJS](http://marijnhaverbeke.nl/uglifyjs))
   * LICENSE - The legal terms and conditions under which this software may be used
   * README.md - This readme file
   * src/ - Directory containing the genData source code
