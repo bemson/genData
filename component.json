@@ -1,0 +1,20 @@
+{
+  "name": "genData",
+  "repo": "bemson/genData",
+  "description": "A normalization pattern to build, query, and manipulate everything.",
+  "version": "3.1.1",
+  "keywords": [
+    "data",
+    "iterate",
+    "select",
+    "generate",
+    "recursive"
+  ],
+  "dependencies": {},
+  "development": {},
+  "license": "MIT",
+  "main": "src/gendata.js",
+  "scripts": [
+    "src/gendata.js"
+  ]
+}

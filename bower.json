@@ -1,0 +1,29 @@
+{
+  "name": "genData",
+  "version": "3.1.1",
+  "homepage": "https://github.com/bemson/genData",
+  "authors": [
+    "Bemi Faison <bemson@gmail.com>"
+  ],
+  "description": "A normalization pattern to build, query, and manipulate everything.",
+  "main": "src/gendata.js",
+  "keywords": [
+    "data",
+    "iterate",
+    "select",
+    "generate",
+    "recursive"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "*.json",
+    "node_modules",
+    "test",
+    "bower_components",
+    "components",
+    "README.md",
+    "LICENSE",
+    "gendata.min.js"
+  ]
+}

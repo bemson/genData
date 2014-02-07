@@ -4,7 +4,6 @@ An iteration utility with a rich callback environment.
 
 [![Build Status](https://travis-ci.org/bemson/genData.png)](https://travis-ci.org/bemson/genData)
 
-(1/10/13)
 version 3.1.1
 by Bemi Faison
 
@@ -251,15 +250,11 @@ Note: While spawning does allow you to curry values to the iteration flag "args"
 
 ## Installation
 
-### Node
+### Node.js
 
-Use [npm](http://npmjs.org/) to install the "genData" package, with `npm install genData`. Then, simply require and use the function directly.
-
-```js
-var genData = require('genData');
-
-/* genData(stuff, callbacks, arguments, ...) */
-```
+  * `npm install genData` if you're using [npm](http://npmjs.org/)
+  * `component install bemson/genData` if you're using [component](https://github.com/component/component)
+  * `bower install genData` if you're using [Bower](http://bower.io)
 
 ### AMD
 
